@@ -1,0 +1,104 @@
+[versions]
+kotlinVersion = "1.8.22"
+androidGradleVersion = "8.1.1"
+androidXCoreVersion = "1.10.1"
+lifecycleVersion = "2.6.1"
+
+detektVersion = "1.23.0"
+spotlessVersion = "6.16.0"
+
+koinVersion = "3.4.1"
+ktorVersion = "2.1.2"
+
+sqlDelightVersion= "2.0.0"
+
+mockkVersion = "1.13.5"
+
+composeCompilerVersion = "1.4.8"
+composeBomVersion = "2023.08.00"
+composeActivityVersion= "1.7.2"
+composeMaterial3Version = "1.1.1"
+
+accompanistVersion = "0.30.1"
+
+junitVersion = "4.13.2"
+turbineVersion = "0.12.2"
+
+coroutinesVersion = "1.7.1"
+
+[libraries]
+compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBomVersion" }
+androidx-composeUi = { group = "androidx.compose.ui", name = "ui" }
+androidx-composeUiTooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-composeUiToolingPreview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-composeFoundation = { group = "androidx.compose.foundation", name = "foundation" }
+androidx-composeActivity = { group = "androidx.activity", name = "activity-compose", version.ref = "composeActivityVersion" }
+
+androidx-core = { group = "androidx.core", name = "core-ktx", version.ref = "androidXCoreVersion" }
+androidx-lifecycleViewmodel = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleVersion" }
+androidx-lifecycleRuntime = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleVersion" }
+
+google-composeMaterial3 = { group = "androidx.compose.material3", name = "material3", version.ref = "composeMaterial3Version" }
+google-accompanistSystemUiController = { group = "com.google.accompanist", name = "accompanist-systemuicontroller", version.ref = "accompanistVersion" }
+
+coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutinesVersion" }
+coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutinesVersion" }
+
+koin-android = { module = "io.insert-koin:koin-android", version.ref = "koinVersion" }
+koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koinVersion" }
+
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktorVersion" }
+ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktorVersion" }
+ktor-client-contentNegotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktorVersion" }
+ktor-client-serialization = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktorVersion" }
+
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockkVersion" }
+junit = { module = "junit:junit", version.ref = "junitVersion" }
+turbine = { module = "app.cash.turbine:turbine", version.ref = "turbineVersion" }
+ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktorVersion" }
+
+android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "androidGradleVersion" }
+kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlinVersion" }
+spotless-gradlePlugin = { group = "com.diffplug.spotless", name = "spotless-plugin-gradle", version.ref = "spotlessVersion" }
+detekt-gradlePlugin = { group = "io.gitlab.arturbosch.detekt", name = "detekt-gradle-plugin", version.ref = "detektVersion" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "androidGradleVersion" }
+android-library = { id = "com.android.library", version.ref = "androidGradleVersion" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinVersion" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlinVersion" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotlessVersion" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detektVersion" }
+
+[bundles]
+androidX = [
+    "androidx-core",
+    "androidx-lifecycleViewmodel",
+    "androidx-lifecycleRuntime",
+]
+composeUI = [
+    "androidx-composeUi",
+    "androidx-composeUiTooling",
+    "androidx-composeUiToolingPreview",
+    "androidx-composeFoundation",
+    "androidx-composeActivity",
+    "google-composeMaterial3",
+    "google-accompanistSystemUiController",
+]
+ktorNetworking = [
+    "ktor-client-core",
+    "ktor-client-android",
+    "ktor-client-contentNegotiation",
+    "ktor-client-serialization",
+]
+koinDI = [
+    "koin-android",
+    "koin-androidx-compose",
+]
+test = [
+    "mockk",
+    "junit",
+    "turbine",
+    "coroutines-test",
+    "ktor-client-mock",
+]
