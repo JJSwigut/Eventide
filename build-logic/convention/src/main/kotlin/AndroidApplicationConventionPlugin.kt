@@ -19,7 +19,8 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                     applicationId = "com.jjswigut.eventide"
                     minSdk = ConfigConstants.MIN_SDK
                     targetSdk = ConfigConstants.TARGET_SDK
-                    versionCode = 9
+                    // Allow overriding versionCode from gradle properties, default to 9 if not provided
+                    versionCode = (project.findProperty("overrideVersionCode")?.toString()?.toIntOrNull()) ?: 9
                     versionName = "2.01"
 
                     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
