@@ -1,6 +1,6 @@
 import com.android.build.api.dsl.ApplicationExtension
-import com.jjswigut.stonks.ConfigConstants
-import com.jjswigut.stonks.configureKotlinAndroid
+import com.jjswigut.eventide.ConfigConstants
+import com.jjswigut.eventide.configureKotlinAndroid
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
@@ -19,8 +19,8 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                     applicationId = "com.jjswigut.eventide"
                     minSdk = ConfigConstants.MIN_SDK
                     targetSdk = ConfigConstants.TARGET_SDK
-                    versionCode = 1
-                    versionName = "1.0"
+                    versionCode = 9
+                    versionName = "2.01"
 
                     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
                     vectorDrawables {

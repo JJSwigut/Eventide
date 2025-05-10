@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS LastUpdate (
+    id INTEGER PRIMARY KEY,
+    lastUpdated INTEGER
+);
+
+insertOrUpdateLastUpdated:
+INSERT OR REPLACE INTO LastUpdate(id, lastUpdated) VALUES (1, ?);
+
+getLastUpdated:
+SELECT lastUpdated FROM LastUpdate WHERE id = 1;

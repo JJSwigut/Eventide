@@ -1,0 +1,31 @@
+CREATE TABLE IF NOT EXISTS StationEntity (
+   id TEXT PRIMARY KEY,
+   latitude REAL NOT NULL,
+   longitude REAL NOT NULL,
+   name TEXT NOT NULL,
+   state TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS index_lat_lng ON StationEntity(latitude, longitude);
+
+-- Inserts or replaces a station entry
+insertStation:
+INSERT OR IGNORE INTO StationEntity(id, latitude, longitude, name, state)
+VALUES (?, ?, ?, ?, ?);
+
+-- Selects all stations from the database
+selectAllStations:
+SELECT *
+FROM StationEntity;
+
+-- Deletes all stations from the database
+deleteAll:
+DELETE FROM StationEntity;
+
+-- Selects stations within a specified LatLngBounds
+selectStationsWithinBounds:
+SELECT *
+FROM StationEntity
+WHERE latitude BETWEEN ? AND ? -- southWest.latitude and northEast.latitude
+AND longitude BETWEEN ? AND ? -- southWest.longitude and northEast.longitude
+LIMIT 250;

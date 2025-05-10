@@ -1,15 +1,61 @@
+# Generated IntelliJ/Android Studio files
 *.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+*.ipr
+*.iws
+.idea/
+.idea/caches/
+.idea/libraries/
+.idea/misc.xml
+.idea/modules.xml
+.idea/runConfigurations/
+.idea/vcs.xml
+.idea/workspace.xml
+# .idea/gradle.xml
+# .idea/assetWizardSettings.xml
+# .idea/dictionaries/
+
+# Build files
+build/
+.gradle/
+**/build/
+
+# Local configuration files (sensitive)
 local.properties
+app/keystore.properties # IMPORTANT
+eventide.jks # IMPORTANT
+eventide_certificate.pem # IMPORTANT
+
+# Android Studio / System files
+.DS_Store
+**/.DS_Store # Covers .DS_Store in any directory
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Log files
+*.log
+
+# Build artifacts (APKs, AABs, etc.)
+app/release/
+app/debug/
+app/*.apk
+app/*.aab
+# Keep top-level APK/AAB for simpler patterns if needed
+# *.apk
+# *.aab
+
+# Gradle files
+# gradle-wrapper.jar # Usually committed. If you want to ignore, uncomment.
+# /gradlew # Scripts are usually committed
+# /gradlew.bat # Scripts are usually committed
+
+# User-specific Goose directory
+.goose/
+
+# Other common ignores
+*.lock
+*.pid
+*.seed
+*.out
+*.swp
+*~

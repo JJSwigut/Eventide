@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "451248956656",
+    "project_id": "eventide-293800",
+    "storage_bucket": "eventide-293800.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:451248956656:android:6c6ee0dacbd770da654e35",
+        "android_client_info": {
+          "package_name": "com.jjswigut.eventide"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "451248956656-8hr6bh598jrbjthar7vuotvjnf64ut8f.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCG0HluhyQ-Fwzu6lMX0EdhbJW1VwcUzHU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "451248956656-8hr6bh598jrbjthar7vuotvjnf64ut8f.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:451248956656:android:ec96a79432ae1841654e35",
+        "android_client_info": {
+          "package_name": "com.jjswigut.eventide.android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "451248956656-8hr6bh598jrbjthar7vuotvjnf64ut8f.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCG0HluhyQ-Fwzu6lMX0EdhbJW1VwcUzHU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "451248956656-8hr6bh598jrbjthar7vuotvjnf64ut8f.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -2,7 +2,7 @@ plugins {
     `kotlin-dsl`
 }
 
-group = "com.jjswigut.stonks"
+group = "com.jjswigut.eventide"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -14,21 +14,26 @@ dependencies {
     compileOnly(libs.kotlin.gradlePlugin)
     compileOnly(libs.spotless.gradlePlugin)
     compileOnly(libs.detekt.gradlePlugin)
+    compileOnly(libs.sqldelight.gradlePlugin)
 }
 
 gradlePlugin {
     plugins {
         register("androidApplicationCompose") {
-            id = "stonks.android.application.compose"
+            id = "eventide.android.application.compose"
             implementationClass = "AndroidApplicationComposeConventionPlugin"
         }
         register("androidApplication") {
-            id = "stonks.android.application"
+            id = "eventide.android.application"
             implementationClass = "AndroidApplicationConventionPlugin"
         }
         register("quality") {
-            id = "stonks.quality"
+            id = "eventide.quality"
             implementationClass = "QualityConventionPlugin"
+        }
+        register("db") {
+            id = "eventide.db"
+            implementationClass = "DbConventionPlugin"
         }
     }
 }

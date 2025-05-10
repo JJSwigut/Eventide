@@ -19,3 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Suppress warnings about SLF4J's StaticLoggerBinder not being found.
+# This is used when a logging implementation for SLF4J is not explicitly provided,
+# and we accept that logging from libraries using SLF4J might be a no-op.
+-dontwarn org.slf4j.impl.StaticLoggerBinder
