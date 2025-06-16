@@ -118,7 +118,7 @@ fun MapScreen(
                 },
                 onClusterItemClick = {
                     viewModel.handleAction(MapAction.GetTidesForStation(it.station.id))
-                    false
+                    true // Return true to consume the event and prevent default info window
                 },
                 onClusterItemInfoWindowClick = {},
                 onClusterItemInfoWindowLongClick = {},
