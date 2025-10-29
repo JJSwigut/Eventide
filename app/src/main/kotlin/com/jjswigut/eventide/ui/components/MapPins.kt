@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -34,14 +35,15 @@ import com.jjswigut.eventide.ui.theme.PrimaryLight
 @Composable
 fun StationPin(name: String) {
     Column(
-        modifier = Modifier.widthIn(max = 75.dp),
+      modifier = Modifier.widthIn(max = 100.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Image(
-            painter = painterResource(id = R.drawable.map_pin),
-            contentDescription = null
-        ) // todo add content description
+          painter = painterResource(id = R.drawable.map_pin),
+          contentDescription = null,
+          modifier = Modifier.size(56.dp)
+        )
         Spacer(Modifier.height(2.dp))
         StrokedText(text = name)
     }
@@ -51,16 +53,17 @@ fun StationPin(name: String) {
 fun ClusterPin(size: String) {
     Box(
         modifier = Modifier
-            .size(40.dp)
-            .background(PrimaryDark, shape = CircleShape)
-            .border(width = 2.dp, color = PrimaryLight, shape = CircleShape),
+          .size(50.dp)
+          .background(PrimaryDark, shape = CircleShape)
+          .border(width = 2.dp, color = PrimaryLight, shape = CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             modifier = Modifier.padding(2.dp),
             text = size,
             color = PrimaryLight,
-            fontSize = 16.sp,
+          fontSize = 20.sp,
+          fontWeight = FontWeight.Bold,
         )
     }
 }
@@ -71,11 +74,11 @@ fun StrokedText(
     modifier: Modifier = Modifier,
     textAlign: TextAlign = TextAlign.Center,
     overflow: TextOverflow = TextOverflow.Ellipsis,
-    style: TextStyle = TextStyle(fontSize = 12.sp, fontWeight = FontWeight(700)),
+  style: TextStyle = TextStyle(fontSize = 14.sp, fontWeight = FontWeight(700)),
     maxLines: Int = 3,
     fillColor: Color = Color.Black,
     strokeColor: Color = Color.White,
-    strokeWidth: Dp = 3.dp,
+  strokeWidth: Dp = 4.dp,
 ) {
     Box(
         modifier = modifier,
