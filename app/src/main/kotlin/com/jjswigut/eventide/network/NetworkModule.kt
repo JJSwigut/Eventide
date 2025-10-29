@@ -3,16 +3,22 @@ package com.jjswigut.eventide.network
 import com.jjswigut.eventide.network.client.NoaaServiceClient
 import com.jjswigut.eventide.network.service.NoaaService
 import com.jjswigut.eventide.network.service.NoaaServiceImpl
-import io.ktor.client.engine.android.Android
+import io.ktor.client.engine.okhttp.OkHttp
 import org.koin.dsl.module
+import java.util.concurrent.TimeUnit
 
 val networkModule = module {
     single<NoaaService> {
         NoaaServiceImpl(
-            client = NoaaServiceClient(Android.create {
-                connectTimeout = timeout
-                socketTimeout = timeout
-            })
+            client = NoaaServiceClient(
+                OkHttp.create {
+                    config {
+                        connectTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
+                        readTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
+                        writeTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
+                    }
+                }
+            )
         )
     }
 }

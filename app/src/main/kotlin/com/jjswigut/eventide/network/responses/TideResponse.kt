@@ -54,5 +54,3 @@ private val dateTimeParser = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 private val dayFormatter = DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy")
 
 private val timeFormatter = DateTimeFormatter.ofPattern("h:mma")
-
-

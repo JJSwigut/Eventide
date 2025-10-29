@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.konan.properties.loadProperties
 plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.services)
     alias(libs.plugins.sqldelight)
     id("eventide.android.application")
@@ -31,6 +32,9 @@ dependencies {
     implementation(libs.bundles.koinDI)
     implementation(libs.bundles.ktorNetworking)
     implementation(libs.bundles.sqlDelight)
+
+    // Use OkHttp engine instead of deprecated Android engine
+    implementation("io.ktor:ktor-client-okhttp:${libs.versions.ktor.get()}")
 
     testImplementation(libs.bundles.test)
 }

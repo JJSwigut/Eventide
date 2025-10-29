@@ -7,13 +7,16 @@ import com.jjswigut.eventide.EventideBuildType.debug
 import com.jjswigut.eventide.EventideBuildType.release
 import org.gradle.api.JavaVersion
 import org.gradle.api.Project
+import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.dependencies
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
 
 /**
  * Configure base Kotlin with Android options
  */
 internal fun Project.configureKotlinAndroid(
-    commonExtension: CommonExtension<*, *, *, *, *>,
+    commonExtension: CommonExtension<*, *, *, *, *, *>,
 ) {
     commonExtension.apply {
         compileSdk = ConfigConstants.COMPILE_SDK
@@ -36,9 +39,12 @@ internal fun Project.configureKotlinAndroid(
             sourceCompatibility = JavaVersion.VERSION_17
             targetCompatibility = JavaVersion.VERSION_17
         }
+    }
 
-        kotlinOptions {
-            jvmTarget = JavaVersion.VERSION_17.toString()
+    // Configure Kotlin compiler options using the new API
+    extensions.configure<KotlinAndroidProjectExtension> {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
         }
     }
 

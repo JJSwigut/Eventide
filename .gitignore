@@ -18,6 +18,7 @@
 build/
 .gradle/
 **/build/
+.gradle-home/
 
 # Local configuration files (sensitive)
 local.properties
