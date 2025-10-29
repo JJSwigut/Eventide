@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -26,7 +27,9 @@ import com.jjswigut.eventide.R
 import com.jjswigut.eventide.data.models.TideDay
 import com.jjswigut.eventide.map.MapAction
 import com.jjswigut.eventide.ui.components.Action
+import com.jjswigut.eventide.ui.theme.Primary
 import com.jjswigut.eventide.ui.theme.PrimaryDark
+import com.jjswigut.eventide.ui.theme.PrimaryLight
 
 private object StationInfoDesign {
   val closeButtonSize = 48.dp
@@ -60,25 +63,33 @@ private fun CloseButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
+  val gradientBrush = Brush.radialGradient(
+    colors = listOf(
+      PrimaryLight,
+      Primary,
+      PrimaryDark
+    )
+  )
+
   Box(
     contentAlignment = Alignment.Center,
     modifier = modifier
-        .padding(
-            bottom = StationInfoDesign.closeButtonPadding,
-            end = 20.dp
-        )
-        .size(StationInfoDesign.closeButtonSize)
-        .background(
-            color = PrimaryDark,
-            shape = RoundedCornerShape(StationInfoDesign.closeButtonCornerRadius)
-        )
-        .border(
-            width = StationInfoDesign.closeButtonBorderWidth,
-            color = Color.White.copy(alpha = 0.3f),
-            shape = RoundedCornerShape(StationInfoDesign.closeButtonCornerRadius)
-        )
-        .clip(shape = RoundedCornerShape(StationInfoDesign.closeButtonCornerRadius))
-        .clickable(onClick = onClick)
+      .padding(
+        bottom = StationInfoDesign.closeButtonPadding,
+        end = 20.dp
+      )
+      .size(StationInfoDesign.closeButtonSize)
+      .background(
+        brush = gradientBrush,
+        shape = RoundedCornerShape(StationInfoDesign.closeButtonCornerRadius)
+      )
+      .border(
+        width = StationInfoDesign.closeButtonBorderWidth,
+        color = Color.White.copy(alpha = 0.5f),
+        shape = RoundedCornerShape(StationInfoDesign.closeButtonCornerRadius)
+      )
+      .clip(shape = RoundedCornerShape(StationInfoDesign.closeButtonCornerRadius))
+      .clickable(onClick = onClick)
   ) {
     Image(
       painter = painterResource(id = R.drawable.close_icon),

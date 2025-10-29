@@ -1,5 +1,6 @@
 package com.jjswigut.eventide.map
 
+import android.annotation.SuppressLint
 import android.location.Location
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -18,7 +19,9 @@ import com.jjswigut.eventide.map.MapAction.GetTidesForStation
 import com.jjswigut.eventide.map.MapAction.GetUserLocation
 import com.jjswigut.eventide.map.MapAction.HandleMapMotion
 import com.jjswigut.eventide.map.MapAction.Initialize
+import com.jjswigut.eventide.map.MapAction.MapLoaded
 import com.jjswigut.eventide.map.MapAction.MenuClicked
+import com.jjswigut.eventide.map.MapAction.NavigateToNearestStation
 import com.jjswigut.eventide.map.models.StationClusterItem
 import com.jjswigut.eventide.network.utils.process
 import com.jjswigut.eventide.repository.NoaaRepository
@@ -30,11 +33,16 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 private val listOfButtons = persistentListOf(
     MenuItem(
@@ -51,6 +59,7 @@ private val listOfButtons = persistentListOf(
 private val mainButton = MenuItem(
     "", R.drawable.menu_icon, MenuClicked
 )
+
 class MapViewModel(
     private val noaaRepository: NoaaRepository,
     private val dispatcher: Dispatcher,
@@ -58,10 +67,12 @@ class MapViewModel(
 ) : ViewModel() {
 
     private var getStationsJob: Job? = null
+    private var allStations: List<StationClusterItem> = emptyList()
+    private var isInitialLoad = true
 
     val cameraState = CameraPositionState(
         CameraPosition(
-            LatLng(0.0, 0.0),
+            StartLocation,
             11f,
             0f,
             0f,
@@ -74,6 +85,9 @@ class MapViewModel(
                 is Initialize -> {
                     initialize(action.hasLocationPermission)
                 }
+                is MapLoaded -> {
+                    onMapLoaded()
+                }
                 is GetUserLocation -> {
                     getUserLocation()
                 }
@@ -85,11 +99,69 @@ class MapViewModel(
                 }
                 is CloseTides -> {
                     updateViewState {
-                        copy(listOfTideDays = null)
+                        copy(
+                            listOfTideDays = null,
+                            showEmptyState = stations.isEmpty() && isMapLoaded
+                        )
+                    }
+                }
+                is NavigateToNearestStation -> {
+                    navigateToNearestStation()
+                }
+            }
+        }
+    }
+
+    private suspend fun onMapLoaded() {
+        // Wait a brief moment for initial camera setup before hiding splash
+        delay(300)
+        updateViewState {
+            copy(isMapLoaded = true)
+        }
+
+        // Check for empty state on initial load
+        if (isInitialLoad) {
+            isInitialLoad = false
+            viewModelScope.launch(dispatcher.main) {
+                cameraState.projection?.visibleRegion?.latLngBounds?.let { bounds ->
+                    // Switch back to IO for the network/db call
+                    viewModelScope.launch(dispatcher.io) {
+                        getStations(bounds)
                     }
                 }
             }
         }
+    }
+
+    private suspend fun navigateToNearestStation() {
+        val currentLocation = cameraState.position.target
+        val nearest = allStations.minByOrNull { station ->
+            distanceBetween(currentLocation, station.position)
+        }
+
+        nearest?.let { station ->
+            // Dismiss empty state first
+            updateViewState {
+                copy(showEmptyState = false)
+            }
+
+            // Animate to the station (without opening tides)
+            animateCameraPosition(target = station.position, zoom = 13f)
+        }
+    }
+
+    private fun distanceBetween(
+        pos1: LatLng,
+        pos2: LatLng,
+    ): Double {
+        val earthRadius = 6371000.0 // meters
+        val dLat = Math.toRadians(pos2.latitude - pos1.latitude)
+        val dLng = Math.toRadians(pos2.longitude - pos1.longitude)
+        val a = sin(dLat / 2) * sin(dLat / 2) +
+          cos(Math.toRadians(pos1.latitude)) * cos(Math.toRadians(pos2.latitude)) *
+          sin(dLng / 2) * sin(dLng / 2)
+        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        return earthRadius * c
     }
 
     private suspend fun getTidesForStation(stationId: String) {
@@ -105,7 +177,10 @@ class MapViewModel(
         }
 
         updateViewState {
-            copy(listOfTideDays = placeholderCards.toImmutableList())
+            copy(
+                listOfTideDays = placeholderCards.toImmutableList(),
+                showEmptyState = false
+            )
         }
 
         // Fetch tides in background
@@ -156,6 +231,10 @@ class MapViewModel(
     private suspend fun handleMapMotion(isMoving: Boolean, bounds: LatLngBounds?) {
         if (isMoving) {
             getStationsJob?.cancel()
+            // Hide empty state while moving
+            updateViewState {
+                copy(showEmptyState = false)
+            }
         } else {
             bounds?.let {
                 getStations(it)
@@ -167,10 +246,11 @@ class MapViewModel(
         getStationsJob = viewModelScope.launch(dispatcher.io) {
             noaaRepository.getStationsWithinBounds(bounds).process(
                 onSuccess = { stations ->
+                    val stationItems = stations.map { StationClusterItem(it) }
                     updateViewState {
                         copy(
-                            stations = stations.map { StationClusterItem(it) }
-                                .toImmutableList(),
+                            stations = stationItems.toImmutableList(),
+                            showEmptyState = stationItems.isEmpty() && isMapLoaded
                         )
                     }
                 },
@@ -181,14 +261,41 @@ class MapViewModel(
         }
     }
 
+    @SuppressLint("MissingPermission")
     private suspend fun initialize(hasLocationPermission: Boolean) = coroutineScope {
-        async(dispatcher.io) { noaaRepository.fetchAndCacheStations() }.await()
+        val stationsFetch = async(dispatcher.io) { noaaRepository.fetchAndCacheStations() }
 
+        // Set initial camera position (without animation to avoid visible jump)
         if (hasLocationPermission) {
-            getUserLocation()
-        } else {
-            animateCameraPosition(target = StartLocation)
+            try {
+                val location = locationClient.lastLocation.await()
+                location?.let {
+                    viewModelScope.launch(dispatcher.main) {
+                        cameraState.position = CameraPosition(
+                            location.latLng(),
+                            StartZoomLevel,
+                            0f,
+                            0f,
+                        )
+                    }.join()
+                }
+            } catch (e: Exception) {
+                // If we can't get location, camera stays at StartLocation
+            }
         }
+
+        // Wait for stations to finish fetching
+        stationsFetch.await()
+
+        // Store all stations for finding nearest
+        noaaRepository.getAllStations().process(
+            onSuccess = { stations ->
+                allStations = stations.map { StationClusterItem(it) }
+            },
+            onError = {
+                allStations = emptyList()
+            }
+        )
 
         updateViewState {
             copy(isLoading = false)
@@ -224,6 +331,8 @@ class MapViewModel(
         MapViewState(
             stations = persistentListOf(),
             isLoading = true,
+            isMapLoaded = false,
+            showEmptyState = false,
             listOfTideDays = null,
             menuState = MenuState(
                 centerButton = mainButton,
@@ -249,9 +358,11 @@ class MapViewModel(
 
 data class MapViewState(
     val isLoading: Boolean,
+    val isMapLoaded: Boolean,
+    val showEmptyState: Boolean,
     val stations: ImmutableList<StationClusterItem>,
     val listOfTideDays: ImmutableList<TideDay>?,
-    val menuState: MenuState
+    val menuState: MenuState,
 )
 
 data class MenuState(
@@ -262,9 +373,11 @@ data class MenuState(
 
 sealed interface MapAction : Action {
     data class Initialize(val hasLocationPermission: Boolean) : MapAction
+    data object MapLoaded : MapAction
     data class HandleMapMotion(val isMoving: Boolean, val bounds: LatLngBounds? = null) : MapAction
     data object GetUserLocation : MapAction
     data class GetTidesForStation(val stationId: String) : MapAction
+    data object NavigateToNearestStation : MapAction
 
     data object CloseTides : MapAction
 

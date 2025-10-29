@@ -22,9 +22,12 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.MapsComposeExperimentalApi
 import com.jjswigut.eventide.map.MapAction.HandleMapMotion
 import com.jjswigut.eventide.map.MapAction.Initialize
+import com.jjswigut.eventide.map.MapAction.MapLoaded
+import com.jjswigut.eventide.map.MapAction.NavigateToNearestStation
 import com.jjswigut.eventide.map.components.StationInfoRow
 import com.jjswigut.eventide.ui.components.ClusterPin
-import com.jjswigut.eventide.ui.components.FullScreenLoader
+import com.jjswigut.eventide.ui.components.EmptyStateOverlay
+import com.jjswigut.eventide.ui.components.SplashScreen
 import com.jjswigut.eventide.ui.components.StationPin
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -55,6 +58,10 @@ fun MapScreen(
         )
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.handleAction(Initialize(hasLocationPermission))
+    }
+
     LaunchedEffect(viewModel.cameraState.isMoving) {
         viewModel.handleAction(
             HandleMapMotion(
@@ -71,7 +78,7 @@ fun MapScreen(
             properties = mapProperties,
             uiSettings = mapUiSettings,
             onMapLoaded = {
-                viewModel.handleAction(Initialize(hasLocationPermission))
+                viewModel.handleAction(MapLoaded)
             }
         ) {
             EventideClustering(
@@ -93,7 +100,14 @@ fun MapScreen(
             )
         }
 
-        FullScreenLoader(visible = viewState.isLoading)
+        SplashScreen(visible = !viewState.isMapLoaded)
+
+        EmptyStateOverlay(
+            visible = viewState.showEmptyState,
+            onNavigateToNearest = {
+                viewModel.handleAction(NavigateToNearestStation)
+            }
+        )
 
         viewState.listOfTideDays?.let { tideDays ->
             StationInfoRow(

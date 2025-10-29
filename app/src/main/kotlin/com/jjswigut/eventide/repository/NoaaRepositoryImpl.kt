@@ -134,6 +134,19 @@ class NoaaRepositoryImpl(
         )
     }
 
+    override suspend fun getAllStations(): Either<List<Station>, GenericError> {
+        return runCatching {
+            stationsDb.stationsQueries.selectAllStations().executeAsList()
+        }.fold(
+            onSuccess = { list ->
+                Either.success(list.toModel())
+            },
+            onFailure = {
+                Either.failure(DbError())
+            }
+        )
+    }
+
     /**
      * Fetches weather for a station location.
      * Returns Either with weather list or error.

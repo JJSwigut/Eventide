@@ -9,7 +9,9 @@ import com.jjswigut.eventide.utils.GenericError
 interface NoaaRepository {
     suspend fun fetchAndCacheStations()
 
-    suspend fun getStationsWithinBounds(bounds: LatLngBounds): Either<List<Station>, GenericError>
+  suspend fun getAllStations(): Either<List<Station>, GenericError>
+
+  suspend fun getStationsWithinBounds(bounds: LatLngBounds): Either<List<Station>, GenericError>
 
     suspend fun getTidesForStation(stationID: String): Either<List<TideDay>, GenericError>
 
