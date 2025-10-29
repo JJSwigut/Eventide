@@ -53,32 +53,38 @@ class WeatherServiceImpl(
 
   /**
    * Converts 12-hour periods into daily weather summaries.
-   * Combines day and night periods for each day.
+   * Starts from the first daytime period and pairs each day with its following night.
+   * This ensures correct day/night pairing regardless of what time the forecast is fetched.
    */
   private fun convertPeriodsToDaily(periods: List<WeatherPeriod>): List<Weather> {
     val dailyWeather = mutableListOf<Weather>()
 
-    // Group periods by day (every 2 periods = 1 day)
-    periods.chunked(2).forEach { dayPeriods ->
-      val dayPeriod = dayPeriods.firstOrNull { it.isDaytime }
-      val nightPeriod = dayPeriods.firstOrNull { !it.isDaytime }
+    // Find the first daytime period to ensure proper day/night pairing
+    val startIndex = periods.indexOfFirst { it.isDaytime }
+    if (startIndex == -1) return emptyList() // No daytime periods found
 
-      // Use day period as primary, fall back to night if day not available
-      val primary = dayPeriod ?: nightPeriod ?: return@forEach
+    // Process from first daytime period onwards, pairing day with night
+    var i = startIndex
+    while (i < periods.size && dailyWeather.size < 7) {
+      val dayPeriod = periods[i]
+      val nightPeriod = periods.getOrNull(i + 1)?.takeIf { !it.isDaytime }
 
       dailyWeather.add(
         Weather(
-          date = primary.name,
-          highTemp = dayPeriod?.temperature ?: primary.temperature,
-          lowTemp = nightPeriod?.temperature ?: primary.temperature,
-          conditions = primary.shortForecast,
-          iconUrl = primary.icon,
-          windSpeed = primary.windSpeed
+          date = dayPeriod.name,
+          highTemp = dayPeriod.temperature,
+          lowTemp = nightPeriod?.temperature ?: dayPeriod.temperature,
+          conditions = dayPeriod.shortForecast,
+          iconUrl = dayPeriod.icon,
+          windSpeed = dayPeriod.windSpeed
         )
       )
+
+      // Move to next day period (skip the night period we just processed)
+      i += if (nightPeriod != null) 2 else 1
     }
 
-    return dailyWeather.take(7) // Ensure we only return 7 days
+    return dailyWeather
   }
 
   private fun handleError(throwable: Throwable): GenericError {
