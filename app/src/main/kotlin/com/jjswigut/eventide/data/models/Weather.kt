@@ -17,6 +17,7 @@ data class Weather(
    */
   fun getWeatherEmoji(): String {
     return when {
+      conditions.contains("partly sunny", ignoreCase = true) -> "⛅️"
       conditions.contains("sunny", ignoreCase = true) -> "☀️"
       conditions.contains("clear", ignoreCase = true) -> "☀️"
       conditions.contains("partly cloudy", ignoreCase = true) -> "⛅"
