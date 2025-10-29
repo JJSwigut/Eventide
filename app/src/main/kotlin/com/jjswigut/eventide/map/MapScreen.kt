@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,6 +36,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.maps.CameraUpdate
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -55,11 +57,17 @@ import com.jjswigut.eventide.map.MapAction.Initialize
 import com.jjswigut.eventide.ui.components.Action
 import com.jjswigut.eventide.ui.components.BodyText
 import com.jjswigut.eventide.ui.components.ClusterPin
+import com.jjswigut.eventide.ui.components.DateHeaderText
+import com.jjswigut.eventide.ui.components.EnhancedBodyText
 import com.jjswigut.eventide.ui.components.FullScreenLoader
+import com.jjswigut.eventide.ui.components.LargeBodyText
+import com.jjswigut.eventide.ui.components.SectionTitleText
 import com.jjswigut.eventide.ui.components.ShimmerLoading
 import com.jjswigut.eventide.ui.components.StationPin
+import com.jjswigut.eventide.ui.components.TemperatureText
 import com.jjswigut.eventide.ui.components.TitleText
 import com.jjswigut.eventide.ui.theme.BackgroundDark
+import com.jjswigut.eventide.ui.theme.PrimaryDark
 import com.jjswigut.eventide.ui.theme.PrimaryLight
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -172,25 +180,39 @@ fun StationInfoRow(
         Box(
             contentAlignment = Center,
             modifier = Modifier
-              .padding(bottom = 8.dp, end = 16.dp)
+              .padding(bottom = 12.dp, end = 20.dp)
               .align(End)
-              .size(32.dp)
-              .background(shape = RoundedCornerShape(8.dp), color = PrimaryLight)
-              .clip(shape = RoundedCornerShape(8.dp))
+              .size(48.dp)
+              .background(
+                color = PrimaryDark,
+                shape = RoundedCornerShape(12.dp)
+              )
+              .border(
+                width = 2.dp,
+                color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.3f),
+                shape = RoundedCornerShape(12.dp)
+              )
+              .clip(shape = RoundedCornerShape(12.dp))
               .clickable {
                 actionHandler(CloseTides)
-              }) {
+              }
+        ) {
             Image(
-                painter = painterResource(id = R.drawable.close_icon), contentDescription = null,
+              painter = painterResource(id = R.drawable.close_icon),
+              contentDescription = "Close",
+              modifier = Modifier.size(28.dp)
             )
         }
-        LazyRow {
-            item {
-                Spacer(Modifier.width(16.dp))
-            }
+
+      LazyRow(
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+          start = 16.dp,
+          end = 16.dp
+        ),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+      ) {
             items(list) { day ->
                 TideCard(day = day)
-                Spacer(Modifier.width(16.dp))
             }
         }
     }
@@ -202,111 +224,127 @@ val roundedShape = RoundedCornerShape(12.dp)
 private fun TideCard(
     day: TideDay
 ) {
-    val boxWidth = LocalConfiguration.current.screenWidthDp - 48
+  val boxWidth = LocalConfiguration.current.screenWidthDp - 48
     Box(
         modifier = Modifier
-          .size(height = 250.dp, width = boxWidth.dp)
-          .background(color = BackgroundDark.copy(alpha = .7f), shape = roundedShape)
-          .border(color = PrimaryLight, width = 4.dp, shape = roundedShape),
+          .height(680.dp)
+          .width(boxWidth.dp)
+          .background(
+            color = BackgroundDark.copy(alpha = 0.85f),
+            shape = RoundedCornerShape(16.dp)
+          )
+          .border(
+            width = 2.dp,
+            color = PrimaryLight.copy(alpha = 0.6f),
+            shape = RoundedCornerShape(16.dp)
+          ),
         contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+          modifier = Modifier
+            .fillMaxSize()
+            .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
                 modifier = Modifier
-                    .background(color = PrimaryLight, shape = roundedShape),
-                contentAlignment = Companion.Center,
+                  .fillMaxWidth()
+                  .background(
+                    color = PrimaryLight,
+                    shape = roundedShape
+                  ),
+              contentAlignment = Center,
             ) {
-                TitleText(
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+              DateHeaderText(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                     text = day.date
                 )
             }
 
-            Spacer(Modifier.padding(16.dp))
+          Spacer(Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.SpaceBetween,
-              verticalAlignment = Alignment.Top
+          Column(
+            modifier = Modifier
+              .fillMaxWidth()
+              .weight(0.4f)
+              .background(
+                color = PrimaryLight.copy(alpha = 0.9f),
+                shape = roundedShape
+              ),
+            horizontalAlignment = Alignment.CenterHorizontally
             ) {
-              // Tides Column
-                Column(
-                    modifier = Modifier
-                      .weight(1f)
-                      .fillMaxHeight()
-                      .background(color = PrimaryLight, shape = roundedShape),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                  TitleText(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+              SectionTitleText(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                     text = "Tides"
-                  )
+                )
 
-                  // Show shimmer when loading, otherwise show tides
-                  if (day.isTidesLoading) {
+              if (day.isTidesLoading) {
                     Column(
                       modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .padding(8.dp),
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                       horizontalAlignment = Alignment.CenterHorizontally,
                       verticalArrangement = Arrangement.Center
                     ) {
                       ShimmerLoading(modifier = Modifier.fillMaxWidth())
                     }
-                  } else {
-                    day.tides.forEach { tide ->
-                      TideRow(
-                        modifier = Modifier.weight(1f),
-                        tide = tide
-                      )
-                    }
+                } else {
+                    Column(
+                      modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(vertical = 4.dp),
+                      verticalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                      day.tides.forEach { tide ->
+                        EnhancedTideRow(tide = tide)
+                      }
                     }
                 }
+            }
 
-              Spacer(Modifier.width(16.dp))
+          Spacer(Modifier.height(12.dp))
 
-              // Weather Column
-                Column(
-                    modifier = Modifier
-                      .weight(1f)
-                      .fillMaxHeight()
-                      .background(color = PrimaryLight, shape = roundedShape),
-                  horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                  TitleText(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+          Column(
+            modifier = Modifier
+              .fillMaxWidth()
+              .weight(0.6f)
+              .background(
+                color = PrimaryLight.copy(alpha = 0.95f),
+                shape = roundedShape
+              ),
+            horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+              SectionTitleText(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                     text = "Weather"
-                    )
+                )
 
-                  Column(
+              Column(
                     modifier = Modifier
                       .fillMaxWidth()
                       .weight(1f)
-                      .padding(8.dp),
+                      .padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                  ) {
+                  verticalArrangement = Arrangement.SpaceEvenly
+                ) {
                     when {
                       day.isWeatherLoading -> {
                         ShimmerLoading(modifier = Modifier.fillMaxWidth())
                       }
 
                       day.weather != null -> {
-                        WeatherContent(weather = day.weather)
-                      }
+                            EnhancedWeatherContent(weather = day.weather)
+                        }
 
                       else -> {
-                        BodyText(
-                          text = "Weather unavailable",
-                          textAlign = TextAlign.Center
-                        )
-                      }
+                            BodyText(
+                              text = "Weather unavailable",
+                              textAlign = TextAlign.Center
+                            )
+                        }
                     }
-                  }
                 }
             }
         }
@@ -314,55 +352,172 @@ private fun TideCard(
 }
 
 @Composable
-private fun TideRow(
-    modifier: Modifier,
-    tide: Tide
+private fun EnhancedTideRow(
+  tide: Tide,
 ) {
     Row(
-        modifier = modifier.padding(horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
+      modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 12.dp, vertical = 2.dp),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.SpaceBetween
     ) {
+      // Larger tide icon
         Icon(
-            modifier = Modifier.weight(.5f, fill = false),
+          modifier = Modifier.size(24.dp),
             painter = painterResource(id = tide.tideValue.iconRes),
-            contentDescription = null
+          contentDescription = null,
+          tint = BackgroundDark
         )
-        BodyText(
+
+      Spacer(Modifier.width(8.dp))
+
+      // Time with enhanced typography
+      EnhancedBodyText(
             modifier = Modifier.weight(1f),
             text = tide.time,
-            textAlign = TextAlign.End
+          textAlign = TextAlign.Start,
+          fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
         )
-        BodyText(
-            modifier = Modifier.weight(1f),
+
+      // Height with bold weight
+      EnhancedBodyText(
             text = tide.height,
-            textAlign = TextAlign.End
+          textAlign = TextAlign.End,
+          fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
         )
     }
 }
 
 @Composable
-private fun WeatherContent(weather: Weather) {
+private fun EnhancedWeatherContent(weather: Weather) {
   Column(
     horizontalAlignment = Alignment.CenterHorizontally,
-    verticalArrangement = Arrangement.spacedBy(8.dp),
+    verticalArrangement = Arrangement.spacedBy(10.dp),
     modifier = Modifier.fillMaxWidth()
   ) {
-    // Temperature
-    BodyText(
-      text = "${weather.highTemp}°/${weather.lowTemp}°F",
-      textAlign = TextAlign.Center
+    // Weather emoji - more compact
+    androidx.compose.material3.Text(
+      text = weather.getWeatherEmoji(),
+      fontSize = 48.sp
     )
 
-    // Conditions
-    BodyText(
-      text = weather.conditions,
-      textAlign = TextAlign.Center
-    )
+      // Conditions
+      LargeBodyText(
+        text = weather.conditions,
+        textAlign = TextAlign.Center,
+        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+        maxLines = 2
+      )
 
-    // Wind
-    BodyText(
-      text = "Wind: ${weather.windSpeed}",
-      textAlign = TextAlign.Center
-    )
-  }
+      // Temperature display - more compact
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.SpaceEvenly,
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          // Low Temperature - Cool Blue
+          Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier
+              .background(
+                color = androidx.compose.ui.graphics.Color(0xFF4A90E2).copy(alpha = 0.25f),
+                shape = RoundedCornerShape(12.dp)
+              )
+              .padding(horizontal = 20.dp, vertical = 12.dp)
+          ) {
+            Row(
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+              androidx.compose.material3.Text(
+                text = "LOW",
+                fontSize = 13.sp,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Black,
+                color = androidx.compose.ui.graphics.Color.White,
+                letterSpacing = 1.5.sp
+              )
+              androidx.compose.material3.Text(
+                text = "↓",
+                fontSize = 16.sp,
+                color = androidx.compose.ui.graphics.Color.White,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+              )
+            }
+
+              androidx.compose.material3.Text(
+                text = "${weather.lowTemp}°",
+                fontSize = 32.sp,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Black,
+                color = androidx.compose.ui.graphics.Color(0xFF1E4A6F)
+              )
+            }
+
+          // High Temperature - Warm Orange
+          Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier
+              .background(
+                color = androidx.compose.ui.graphics.Color(0xFFFF6B35).copy(alpha = 0.25f),
+                shape = RoundedCornerShape(12.dp)
+              )
+              .padding(horizontal = 20.dp, vertical = 12.dp)
+          ) {
+            Row(
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+              androidx.compose.material3.Text(
+                text = "HIGH",
+                fontSize = 13.sp,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Black,
+                color = androidx.compose.ui.graphics.Color.White,
+                letterSpacing = 1.5.sp
+              )
+              androidx.compose.material3.Text(
+                text = "↑",
+                fontSize = 16.sp,
+                color = androidx.compose.ui.graphics.Color.White,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+              )
+            }
+
+            androidx.compose.material3.Text(
+              text = "${weather.highTemp}°",
+              fontSize = 32.sp,
+              fontWeight = androidx.compose.ui.text.font.FontWeight.Black,
+              color = androidx.compose.ui.graphics.Color(0xFFC53D0F)
+            )
+          }
+        }
+
+      // Wind information - compact
+        Row(
+          horizontalArrangement = Arrangement.Center,
+          verticalAlignment = Alignment.CenterVertically,
+          modifier = Modifier
+            .fillMaxWidth(0.85f)
+            .background(
+              color = PrimaryLight.copy(alpha = 0.3f),
+              shape = RoundedCornerShape(8.dp)
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+          androidx.compose.material3.Text(
+            text = "Wind:",
+            fontSize = 15.sp,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            color = BackgroundDark
+          )
+          Spacer(Modifier.width(6.dp))
+          EnhancedBodyText(
+            text = weather.windSpeed,
+            textAlign = TextAlign.Center,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+            maxLines = 1
+          )
+        }
+    }
 }
