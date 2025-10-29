@@ -4,9 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,6 +27,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jjswigut.eventide.data.models.Tide
@@ -37,19 +42,13 @@ import com.jjswigut.eventide.ui.components.SectionTitleText
 import com.jjswigut.eventide.ui.components.ShimmerLoading
 import com.jjswigut.eventide.ui.theme.BackgroundDark
 import com.jjswigut.eventide.ui.theme.PrimaryLight
+import kotlin.math.max
+import kotlin.math.min
 
 // Design System Constants
 private object TideCardDesign {
-  val cardHeight = 680.dp
   val cardCornerRadius = 16.dp
   val sectionCornerRadius = 12.dp
-
-  val cardPadding = 20.dp
-  val sectionSpacing = 12.dp
-  val contentPadding = 16.dp
-
-  val tidesWeight = 0.4f
-  val weatherWeight = 0.6f
 
   val cardBorderWidth = 2.dp
   val cardBackgroundAlpha = 0.85f
@@ -57,6 +56,37 @@ private object TideCardDesign {
 
   val tidesBackgroundAlpha = 0.9f
   val weatherBackgroundAlpha = 0.95f
+
+  // Base values for 700dp height (scale proportionally from these)
+  const val BASE_HEIGHT = 700f
+  const val MIN_SCALE = 0.55f
+  const val MAX_SCALE = 1.15f
+}
+
+// Adaptive sizing that scales proportionally with available space
+private class AdaptiveSize(availableHeightDp: Float) {
+  // Calculate scale factor (clamped between min and max)
+  private val scaleFactor = min(
+    TideCardDesign.MAX_SCALE,
+    max(TideCardDesign.MIN_SCALE, availableHeightDp / TideCardDesign.BASE_HEIGHT)
+  )
+
+  // All sizes scale proportionally
+  val cardPadding: Dp = (16 * scaleFactor).dp
+  val sectionSpacing: Dp = (10 * scaleFactor).dp
+  val contentPadding: Dp = (12 * scaleFactor).dp
+  val emojiSize: TextUnit = (44 * scaleFactor).sp
+  val temperatureFontSize: TextUnit = (28 * scaleFactor).sp
+  val tempBoxPaddingHorizontal: Dp = (16 * scaleFactor).dp
+  val tempBoxPaddingVertical: Dp = (8 * scaleFactor).dp
+  val tempLabelFontSize: TextUnit = (10 * scaleFactor).sp
+  val tempArrowFontSize: TextUnit = (13 * scaleFactor).sp
+  val iconSize: Dp = (20 * scaleFactor).dp
+  val tideRowPadding: Dp = (1 * scaleFactor).dp
+  val windFontSize: TextUnit = (13 * scaleFactor).sp
+  val letterSpacing: TextUnit = (1.0 * scaleFactor).sp
+  val weatherSpacing: Dp = (4 * scaleFactor).dp
+  val sectionHeaderPadding: Dp = (6 * scaleFactor).dp
 }
 
 // Weather Temperature Colors
@@ -72,9 +102,10 @@ private object TemperatureColors {
 fun TideCard(day: TideDay) {
   val boxWidth = LocalConfiguration.current.screenWidthDp - 48
 
-  Box(
+  @Suppress("UnusedBoxWithConstraintsScope")
+  BoxWithConstraints(
     modifier = Modifier
-      .height(TideCardDesign.cardHeight)
+      .fillMaxHeight(.8f)
       .width(boxWidth.dp)
       .background(
         color = BackgroundDark.copy(alpha = TideCardDesign.cardBackgroundAlpha),
@@ -87,33 +118,42 @@ fun TideCard(day: TideDay) {
       ),
     contentAlignment = Alignment.Center
   ) {
+    val availableHeight = maxHeight
+    val adaptiveSize = remember(availableHeight) { AdaptiveSize(availableHeight.value) }
+
     Column(
       modifier = Modifier
         .fillMaxSize()
-        .padding(TideCardDesign.cardPadding),
-      horizontalAlignment = Alignment.CenterHorizontally
+        .padding(adaptiveSize.cardPadding),
+      horizontalAlignment = Alignment.CenterHorizontally,
+      verticalArrangement = Arrangement.SpaceBetween
     ) {
-      DateHeader(date = day.date)
+      DateHeader(date = day.date, adaptiveSize = adaptiveSize)
 
-      Spacer(Modifier.height(TideCardDesign.sectionSpacing))
+      Spacer(Modifier.height(adaptiveSize.sectionSpacing))
 
       TidesSection(
-        modifier = Modifier.weight(TideCardDesign.tidesWeight),
-        day = day
+        modifier = Modifier.weight(0.4f),
+        day = day,
+        adaptiveSize = adaptiveSize
       )
 
-      Spacer(Modifier.height(TideCardDesign.sectionSpacing))
+      Spacer(Modifier.height(adaptiveSize.sectionSpacing))
 
       WeatherSection(
-        modifier = Modifier.weight(TideCardDesign.weatherWeight),
-        day = day
+        modifier = Modifier.weight(0.6f),
+        day = day,
+        adaptiveSize = adaptiveSize
       )
     }
   }
 }
 
 @Composable
-private fun DateHeader(date: String) {
+private fun DateHeader(
+  date: String,
+  adaptiveSize: AdaptiveSize,
+) {
   Box(
     modifier = Modifier
       .fillMaxWidth()
@@ -124,7 +164,10 @@ private fun DateHeader(date: String) {
     contentAlignment = Alignment.Center,
   ) {
     DateHeaderText(
-      modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+      modifier = Modifier.padding(
+        horizontal = 12.dp,
+        vertical = adaptiveSize.sectionHeaderPadding
+      ),
       text = date
     )
   }
@@ -132,8 +175,9 @@ private fun DateHeader(date: String) {
 
 @Composable
 private fun TidesSection(
-  modifier: Modifier,
+  modifier: Modifier = Modifier,
   day: TideDay,
+  adaptiveSize: AdaptiveSize,
 ) {
   Column(
     modifier = modifier
@@ -145,7 +189,10 @@ private fun TidesSection(
     horizontalAlignment = Alignment.CenterHorizontally
   ) {
     SectionTitleText(
-      modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+      modifier = Modifier.padding(
+        horizontal = 12.dp,
+        vertical = adaptiveSize.sectionHeaderPadding
+      ),
       text = "Tides"
     )
 
@@ -154,7 +201,10 @@ private fun TidesSection(
         modifier = Modifier
           .fillMaxWidth()
           .weight(1f)
-          .padding(horizontal = TideCardDesign.contentPadding, vertical = 8.dp),
+          .padding(
+            horizontal = adaptiveSize.contentPadding,
+            vertical = adaptiveSize.sectionHeaderPadding
+          ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
       ) {
@@ -165,11 +215,14 @@ private fun TidesSection(
         modifier = Modifier
           .fillMaxWidth()
           .weight(1f)
-          .padding(vertical = 4.dp),
+          .padding(
+            vertical = adaptiveSize.tideRowPadding,
+            horizontal = 8.dp
+          ),
         verticalArrangement = Arrangement.SpaceEvenly
       ) {
         day.tides.forEach { tide ->
-          TideRow(tide = tide)
+          TideRow(tide = tide, adaptiveSize = adaptiveSize)
         }
       }
     }
@@ -178,8 +231,9 @@ private fun TidesSection(
 
 @Composable
 private fun WeatherSection(
-  modifier: Modifier,
+  modifier: Modifier = Modifier,
   day: TideDay,
+  adaptiveSize: AdaptiveSize,
 ) {
   Column(
     modifier = modifier
@@ -191,7 +245,10 @@ private fun WeatherSection(
     horizontalAlignment = Alignment.CenterHorizontally
   ) {
     SectionTitleText(
-      modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+      modifier = Modifier.padding(
+        horizontal = 12.dp,
+        vertical = adaptiveSize.sectionHeaderPadding
+      ),
       text = "Weather"
     )
 
@@ -199,7 +256,10 @@ private fun WeatherSection(
       modifier = Modifier
         .fillMaxWidth()
         .weight(1f)
-        .padding(horizontal = TideCardDesign.contentPadding, vertical = 8.dp),
+        .padding(
+          horizontal = adaptiveSize.contentPadding,
+          vertical = adaptiveSize.sectionHeaderPadding
+        ),
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.SpaceEvenly
     ) {
@@ -209,7 +269,7 @@ private fun WeatherSection(
         }
 
         day.weather != null -> {
-          WeatherContent(weather = day.weather)
+          WeatherContent(weather = day.weather, adaptiveSize = adaptiveSize)
         }
 
         else -> {
@@ -224,22 +284,28 @@ private fun WeatherSection(
 }
 
 @Composable
-private fun TideRow(tide: Tide) {
+private fun TideRow(
+  tide: Tide,
+  adaptiveSize: AdaptiveSize,
+) {
   Row(
     modifier = Modifier
       .fillMaxWidth()
-      .padding(horizontal = 12.dp, vertical = 2.dp),
+      .padding(
+        horizontal = adaptiveSize.contentPadding,
+        vertical = adaptiveSize.tideRowPadding
+      ),
     verticalAlignment = Alignment.CenterVertically,
     horizontalArrangement = Arrangement.SpaceBetween
   ) {
     Icon(
-      modifier = Modifier.size(24.dp),
+      modifier = Modifier.size(adaptiveSize.iconSize),
       painter = painterResource(id = tide.tideValue.iconRes),
       contentDescription = null,
       tint = BackgroundDark
     )
 
-    Spacer(Modifier.width(8.dp))
+    Spacer(Modifier.width(6.dp))
 
     EnhancedBodyText(
       modifier = Modifier.weight(1f),
@@ -257,15 +323,18 @@ private fun TideRow(tide: Tide) {
 }
 
 @Composable
-private fun WeatherContent(weather: Weather) {
+private fun WeatherContent(
+  weather: Weather,
+  adaptiveSize: AdaptiveSize,
+) {
   Column(
     horizontalAlignment = Alignment.CenterHorizontally,
-    verticalArrangement = Arrangement.spacedBy(10.dp),
-    modifier = Modifier.fillMaxWidth()
+    verticalArrangement = Arrangement.SpaceEvenly,
+    modifier = Modifier.fillMaxSize()
   ) {
     Text(
       text = weather.getWeatherEmoji(),
-      fontSize = 48.sp
+      fontSize = adaptiveSize.emojiSize
     )
 
     LargeBodyText(
@@ -285,7 +354,8 @@ private fun WeatherContent(weather: Weather) {
         temperature = weather.lowTemp,
         arrow = "↓",
         backgroundColor = TemperatureColors.lowBackground,
-        textColor = TemperatureColors.lowText
+        textColor = TemperatureColors.lowText,
+        adaptiveSize = adaptiveSize
       )
 
       TemperatureBox(
@@ -293,11 +363,12 @@ private fun WeatherContent(weather: Weather) {
         temperature = weather.highTemp,
         arrow = "↑",
         backgroundColor = TemperatureColors.highBackground,
-        textColor = TemperatureColors.highText
+        textColor = TemperatureColors.highText,
+        adaptiveSize = adaptiveSize
       )
     }
 
-    WindInfo(windSpeed = weather.windSpeed)
+    WindInfo(windSpeed = weather.windSpeed, adaptiveSize = adaptiveSize)
   }
 }
 
@@ -308,31 +379,35 @@ private fun TemperatureBox(
   arrow: String,
   backgroundColor: Color,
   textColor: Color,
+  adaptiveSize: AdaptiveSize,
 ) {
   Column(
     horizontalAlignment = Alignment.CenterHorizontally,
-    verticalArrangement = Arrangement.spacedBy(6.dp),
+    verticalArrangement = Arrangement.spacedBy(2.dp),
     modifier = Modifier
       .background(
         color = backgroundColor,
         shape = RoundedCornerShape(12.dp)
       )
-      .padding(horizontal = 20.dp, vertical = 12.dp)
+      .padding(
+        horizontal = adaptiveSize.tempBoxPaddingHorizontal,
+        vertical = adaptiveSize.tempBoxPaddingVertical
+      )
   ) {
     Row(
       verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.spacedBy(3.dp)
+      horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
       Text(
         text = label,
-        fontSize = 13.sp,
+        fontSize = adaptiveSize.tempLabelFontSize,
         fontWeight = FontWeight.Black,
         color = TemperatureColors.labelText,
-        letterSpacing = 1.5.sp
+        letterSpacing = adaptiveSize.letterSpacing
       )
       Text(
         text = arrow,
-        fontSize = 16.sp,
+        fontSize = adaptiveSize.tempArrowFontSize,
         color = TemperatureColors.labelText,
         fontWeight = FontWeight.Bold
       )
@@ -340,7 +415,7 @@ private fun TemperatureBox(
 
     Text(
       text = "$temperature°",
-      fontSize = 32.sp,
+      fontSize = adaptiveSize.temperatureFontSize,
       fontWeight = FontWeight.Black,
       color = textColor
     )
@@ -348,7 +423,10 @@ private fun TemperatureBox(
 }
 
 @Composable
-private fun WindInfo(windSpeed: String) {
+private fun WindInfo(
+  windSpeed: String,
+  adaptiveSize: AdaptiveSize,
+) {
   Row(
     horizontalArrangement = Arrangement.Center,
     verticalAlignment = Alignment.CenterVertically,
@@ -362,7 +440,7 @@ private fun WindInfo(windSpeed: String) {
   ) {
     Text(
       text = "Wind:",
-      fontSize = 15.sp,
+      fontSize = adaptiveSize.windFontSize,
       fontWeight = FontWeight.Bold,
       color = BackgroundDark
     )
