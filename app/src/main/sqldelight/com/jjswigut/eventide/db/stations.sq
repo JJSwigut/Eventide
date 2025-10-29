@@ -29,3 +29,9 @@ FROM StationEntity
 WHERE latitude BETWEEN ? AND ? -- southWest.latitude and northEast.latitude
 AND longitude BETWEEN ? AND ? -- southWest.longitude and northEast.longitude
 LIMIT 250;
+
+-- Selects a single station by ID
+selectStationById:
+SELECT *
+FROM StationEntity
+WHERE id = ?;

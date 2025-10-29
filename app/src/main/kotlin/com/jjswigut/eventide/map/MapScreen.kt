@@ -48,6 +48,7 @@ import com.google.maps.android.compose.MapsComposeExperimentalApi
 import com.jjswigut.eventide.R
 import com.jjswigut.eventide.data.models.Tide
 import com.jjswigut.eventide.data.models.TideDay
+import com.jjswigut.eventide.data.models.Weather
 import com.jjswigut.eventide.map.MapAction.CloseTides
 import com.jjswigut.eventide.map.MapAction.HandleMapMotion
 import com.jjswigut.eventide.map.MapAction.Initialize
@@ -55,6 +56,7 @@ import com.jjswigut.eventide.ui.components.Action
 import com.jjswigut.eventide.ui.components.BodyText
 import com.jjswigut.eventide.ui.components.ClusterPin
 import com.jjswigut.eventide.ui.components.FullScreenLoader
+import com.jjswigut.eventide.ui.components.ShimmerLoading
 import com.jjswigut.eventide.ui.components.StationPin
 import com.jjswigut.eventide.ui.components.TitleText
 import com.jjswigut.eventide.ui.theme.BackgroundDark
@@ -170,14 +172,14 @@ fun StationInfoRow(
         Box(
             contentAlignment = Center,
             modifier = Modifier
-                .padding(bottom = 8.dp, end = 16.dp)
-                .align(End)
-                .size(32.dp)
-                .background(shape = RoundedCornerShape(8.dp), color = PrimaryLight)
-                .clip(shape = RoundedCornerShape(8.dp))
-                .clickable {
-                    actionHandler(CloseTides)
-                }) {
+              .padding(bottom = 8.dp, end = 16.dp)
+              .align(End)
+              .size(32.dp)
+              .background(shape = RoundedCornerShape(8.dp), color = PrimaryLight)
+              .clip(shape = RoundedCornerShape(8.dp))
+              .clickable {
+                actionHandler(CloseTides)
+              }) {
             Image(
                 painter = painterResource(id = R.drawable.close_icon), contentDescription = null,
             )
@@ -203,9 +205,9 @@ private fun TideCard(
     val boxWidth = LocalConfiguration.current.screenWidthDp - 48
     Box(
         modifier = Modifier
-            .size(height = 250.dp, width = boxWidth.dp)
-            .background(color = BackgroundDark.copy(alpha = .7f), shape = roundedShape)
-            .border(color = PrimaryLight, width = 4.dp, shape = roundedShape),
+          .size(height = 250.dp, width = boxWidth.dp)
+          .background(color = BackgroundDark.copy(alpha = .7f), shape = roundedShape)
+          .border(color = PrimaryLight, width = 4.dp, shape = roundedShape),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -227,36 +229,84 @@ private fun TideCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+              horizontalArrangement = Arrangement.SpaceBetween,
+              verticalAlignment = Alignment.Top
             ) {
+              // Tides Column
                 Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(color = PrimaryLight, shape = roundedShape),
+                      .weight(1f)
+                      .fillMaxHeight()
+                      .background(color = PrimaryLight, shape = roundedShape),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    TitleText(text = "Tides")
+                  TitleText(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                    text = "Tides"
+                  )
 
+                  // Show shimmer when loading, otherwise show tides
+                  if (day.isTidesLoading) {
+                    Column(
+                      modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(8.dp),
+                      horizontalAlignment = Alignment.CenterHorizontally,
+                      verticalArrangement = Arrangement.Center
+                    ) {
+                      ShimmerLoading(modifier = Modifier.fillMaxWidth())
+                    }
+                  } else {
                     day.tides.forEach { tide ->
-                        TideRow(
-                            modifier = Modifier.weight(1f),
-                            tide = tide
-                        )
+                      TideRow(
+                        modifier = Modifier.weight(1f),
+                        tide = tide
+                      )
+                    }
                     }
                 }
-                Spacer(Modifier.width(16.dp))
+
+              Spacer(Modifier.width(16.dp))
+
+              // Weather Column
                 Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(color = PrimaryLight, shape = roundedShape),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                      .weight(1f)
+                      .fillMaxHeight()
+                      .background(color = PrimaryLight, shape = roundedShape),
+                  horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    TitleText(text = "Weather")
+                  TitleText(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                    text = "Weather"
+                    )
 
-                    BodyText(text = "Weather info coming soon!", textAlign = TextAlign.Center)
+                  Column(
+                    modifier = Modifier
+                      .fillMaxWidth()
+                      .weight(1f)
+                      .padding(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                  ) {
+                    when {
+                      day.isWeatherLoading -> {
+                        ShimmerLoading(modifier = Modifier.fillMaxWidth())
+                      }
 
+                      day.weather != null -> {
+                        WeatherContent(weather = day.weather)
+                      }
+
+                      else -> {
+                        BodyText(
+                          text = "Weather unavailable",
+                          textAlign = TextAlign.Center
+                        )
+                      }
+                    }
+                  }
                 }
             }
         }
@@ -288,4 +338,31 @@ private fun TideRow(
             textAlign = TextAlign.End
         )
     }
+}
+
+@Composable
+private fun WeatherContent(weather: Weather) {
+  Column(
+    horizontalAlignment = Alignment.CenterHorizontally,
+    verticalArrangement = Arrangement.spacedBy(8.dp),
+    modifier = Modifier.fillMaxWidth()
+  ) {
+    // Temperature
+    BodyText(
+      text = "${weather.highTemp}°/${weather.lowTemp}°F",
+      textAlign = TextAlign.Center
+    )
+
+    // Conditions
+    BodyText(
+      text = weather.conditions,
+      textAlign = TextAlign.Center
+    )
+
+    // Wind
+    BodyText(
+      text = "Wind: ${weather.windSpeed}",
+      textAlign = TextAlign.Center
+    )
+  }
 }

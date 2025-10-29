@@ -93,18 +93,64 @@ class MapViewModel(
     }
 
     private suspend fun getTidesForStation(stationId: String) {
-        noaaRepository.getTidesForStation(stationId).process(
-            onSuccess = { tideDays ->
-                updateViewState {
-                    copy(
-                        listOfTideDays = tideDays.toImmutableList()
-                    )
+        // Show 7 placeholder cards immediately with loading state
+        val placeholderCards = (1..7).map { dayIndex ->
+            TideDay(
+                date = "Loading...",
+                tides = emptyList(),
+                weather = null,
+                isWeatherLoading = true,
+                isTidesLoading = true
+            )
+        }
+
+        updateViewState {
+            copy(listOfTideDays = placeholderCards.toImmutableList())
+        }
+
+        // Fetch tides in background
+        viewModelScope.launch(dispatcher.io) {
+            noaaRepository.getTidesForStation(stationId).process(
+                onSuccess = { tideDays ->
+                    // Update with tides (weather still loading)
+                    val tidesWithLoadingWeather = tideDays.map {
+                        it.copy(
+                            isTidesLoading = false,
+                            isWeatherLoading = true
+                        )
+                    }
+                    updateViewState {
+                        copy(listOfTideDays = tidesWithLoadingWeather.toImmutableList())
+                    }
+
+                    // Fetch weather in background
+                    launch(dispatcher.io) {
+                        noaaRepository.getTidesWithWeather(stationId).process(
+                            onSuccess = { tideDaysWithWeather ->
+                                updateViewState {
+                                    copy(listOfTideDays = tideDaysWithWeather.toImmutableList())
+                                }
+                            },
+                            onError = {
+                                // Weather failed, show tides without weather
+                                val tidesWithoutWeather = tideDays.map {
+                                    it.copy(
+                                        isTidesLoading = false,
+                                        isWeatherLoading = false
+                                    )
+                                }
+                                updateViewState {
+                                    copy(listOfTideDays = tidesWithoutWeather.toImmutableList())
+                                }
+                            }
+                        )
+                    }
+                },
+                onError = {
+                    //todo add kermit logging
                 }
-            },
-            onError = {
-                //todo add kermit logging
-            }
-        )
+            )
+        }
     }
 
     private suspend fun handleMapMotion(isMoving: Boolean, bounds: LatLngBounds?) {

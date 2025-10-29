@@ -10,8 +10,11 @@ data class Tide(
 )
 
 data class TideDay(
-    val date: String,
-    val tides: List<Tide>,
+  val date: String,
+  val tides: List<Tide>,
+  val weather: Weather? = null,
+  val isWeatherLoading: Boolean = false,
+  val isTidesLoading: Boolean = false,
 )
 
 enum class TideValue(@DrawableRes val iconRes: Int) {

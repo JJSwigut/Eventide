@@ -6,6 +6,7 @@ val repositoryModule = module {
     single<NoaaRepository> {
         NoaaRepositoryImpl(
             noaaService = get(),
+          weatherService = get(),
             stationsDb = get()
         )
     }

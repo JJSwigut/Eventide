@@ -36,7 +36,7 @@ class NoaaServiceImpl(
 
     override suspend fun getTidesForStation(stationID: String): Either<TidesResponse, GenericError> {
         val startDate = LocalDate.now()
-        val endDate = startDate.plusMonths(1)
+      val endDate = startDate.plusDays(7)
 
         return runCatching {
             client.getTides(

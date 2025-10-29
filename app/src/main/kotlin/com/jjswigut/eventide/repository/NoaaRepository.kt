@@ -12,4 +12,11 @@ interface NoaaRepository {
     suspend fun getStationsWithinBounds(bounds: LatLngBounds): Either<List<Station>, GenericError>
 
     suspend fun getTidesForStation(stationID: String): Either<List<TideDay>, GenericError>
+
+  suspend fun getTidesWithWeather(stationID: String): Either<List<TideDay>, GenericError>
+
+  suspend fun getTidesImmediately(
+    stationID: String,
+    onWeatherUpdate: (List<TideDay>) -> Unit,
+  ): Either<List<TideDay>, GenericError>
 }
