@@ -40,6 +40,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.lang.ref.WeakReference
 
 /**
  * Groups many items on a map based on zoom level.
@@ -149,6 +150,10 @@ internal class ComposeUiClusterRenderer<T : ClusterItem>(
     private val fakeCanvas = Canvas()
     private val keysToViews = mutableMapOf<ViewKey<T>, ViewInfo>()
 
+  // Cache for rendered bitmaps to avoid recreating identical bitmaps
+  private val bitmapCache = mutableMapOf<String, WeakReference<BitmapDescriptor>>()
+  private val MAX_CACHE_SIZE = 50
+
     override fun onClustersChanged(clusters: Set<Cluster<T>>) {
         super.onClustersChanged(clusters)
         val keys = clusters.flatMap { it.computeViewKeys() }
@@ -166,6 +171,12 @@ internal class ComposeUiClusterRenderer<T : ClusterItem>(
                 createAndAddView(key)
             }
         }
+
+      // Clean up bitmap cache if it gets too large
+      if (bitmapCache.size > MAX_CACHE_SIZE) {
+        // Remove entries with cleared weak references
+        bitmapCache.entries.removeIf { it.value.get() == null }
+      }
     }
 
     override fun shouldRenderAsCluster(cluster: Cluster<T>): Boolean {
@@ -239,21 +250,35 @@ internal class ComposeUiClusterRenderer<T : ClusterItem>(
             awaitClose()
         }
             .collectLatest {
-                when (key) {
+              val cacheKey = when (key) {
+                is ViewKey.Cluster -> "cluster_${key.cluster.size}"
+                is ViewKey.Item -> "item_${key.item.position.latitude}_${key.item.position.longitude}"
+              }
+
+              val marker = when (key) {
                     is ViewKey.Cluster -> getMarker(key.cluster)
                     is ViewKey.Item -> getMarker(key.item)
-                }?.setIcon(renderViewToBitmapDescriptor(view))
-            }
+                }
 
+              marker?.setIcon(renderViewToBitmapDescriptor(view, cacheKey))
+            }
     }
 
     override fun getDescriptorForCluster(cluster: Cluster<T>): BitmapDescriptor {
         return if (clusterContentState.value != null) {
-            val viewInfo = keysToViews.entries
+          val cacheKey = "cluster_${cluster.size}"
+
+          // Check cache first
+          bitmapCache[cacheKey]?.get()?.let { return it }
+
+          val viewInfo = keysToViews.entries
                 .firstOrNull { (key, _) -> (key as? ViewKey.Cluster)?.cluster == cluster }
                 ?.value
                 ?: createAndAddView(cluster.computeViewKeys().first())
-            renderViewToBitmapDescriptor(viewInfo.view)
+
+          val descriptor = renderViewToBitmapDescriptor(viewInfo.view, cacheKey)
+          bitmapCache[cacheKey] = WeakReference(descriptor)
+          descriptor
         } else {
             super.getDescriptorForCluster(cluster)
         }
@@ -263,25 +288,52 @@ internal class ComposeUiClusterRenderer<T : ClusterItem>(
         super.onBeforeClusterItemRendered(item, markerOptions)
 
         if (clusterItemContentState.value != null) {
-            val viewInfo = keysToViews.entries
+          val cacheKey = "item_${item.title}_${item.position.latitude}_${item.position.longitude}"
+
+          // Check cache first
+          bitmapCache[cacheKey]?.get()?.let {
+            markerOptions.icon(it)
+            return
+          }
+
+          val viewInfo = keysToViews.entries
                 .firstOrNull { (key, _) -> (key as? ViewKey.Item)?.item == item }
                 ?.value
                 ?: createAndAddView(ViewKey.Item(item))
-            markerOptions.icon(renderViewToBitmapDescriptor(viewInfo.view))
+
+          val descriptor = renderViewToBitmapDescriptor(viewInfo.view, cacheKey)
+          bitmapCache[cacheKey] = WeakReference(descriptor)
+          markerOptions.icon(descriptor)
         }
     }
 
-    private fun renderViewToBitmapDescriptor(view: AbstractComposeView): BitmapDescriptor {
-        /* AndroidComposeView triggers LayoutNode's layout phase in the View draw phase,
-           so trigger a draw to an empty canvas to force that */
+  private fun renderViewToBitmapDescriptor(
+    view: AbstractComposeView,
+    cacheKey: String? = null,
+  ): BitmapDescriptor {
+    // Check if we already have this cached
+    cacheKey?.let { key ->
+      bitmapCache[key]?.get()?.let { return it }
+    }
+
+    /* AndroidComposeView triggers LayoutNode's layout phase in the View draw phase,
+       so trigger a draw to an empty canvas to force that */
         view.draw(fakeCanvas)
         val viewParent = (view.parent as ViewGroup)
+
+      val measuredWidth = view.measuredWidth
+      val measuredHeight = view.measuredHeight
+
+      // Only remeasure if dimensions changed
+      if (measuredWidth == 0 || measuredHeight == 0) {
         view.measure(
-            View.MeasureSpec.makeMeasureSpec(viewParent.width, View.MeasureSpec.AT_MOST),
-            View.MeasureSpec.makeMeasureSpec(viewParent.height, View.MeasureSpec.AT_MOST),
+          View.MeasureSpec.makeMeasureSpec(viewParent.width, View.MeasureSpec.AT_MOST),
+          View.MeasureSpec.makeMeasureSpec(viewParent.height, View.MeasureSpec.AT_MOST),
         )
         view.layout(0, 0, view.measuredWidth, view.measuredHeight)
-        val bitmap = Bitmap.createBitmap(
+      }
+
+      val bitmap = Bitmap.createBitmap(
             view.measuredWidth.takeIf { it > 0 } ?: 1,
             view.measuredHeight.takeIf { it > 0 } ?: 1,
             Bitmap.Config.ARGB_8888
@@ -290,7 +342,14 @@ internal class ComposeUiClusterRenderer<T : ClusterItem>(
             view.draw(this)
         }
 
-        return BitmapDescriptorFactory.fromBitmap(bitmap)
+      val descriptor = BitmapDescriptorFactory.fromBitmap(bitmap)
+
+      // Cache the result
+      cacheKey?.let { key ->
+        bitmapCache[key] = WeakReference(descriptor)
+      }
+
+      return descriptor
     }
 
     private sealed class ViewKey<T : ClusterItem> {

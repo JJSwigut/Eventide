@@ -71,6 +71,25 @@ fun MapScreen(
         )
     }
 
+    // Memoize cluster and item click handlers to avoid recreating them on every recomposition
+    val onClusterClick: (Cluster<*>) -> Boolean = remember {
+        { cluster ->
+            scope.launch {
+                viewModel.cameraState.animate(cluster.clusterZoomCameraUpdate())
+            }
+            false
+        }
+    }
+
+    val onClusterItemClick = remember {
+        { item: com.jjswigut.eventide.map.models.StationClusterItem ->
+            viewModel.handleAction(
+                com.jjswigut.eventide.map.MapAction.GetTidesForStation(item.station.id)
+            )
+            true
+        }
+    }
+
     Box {
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
@@ -83,20 +102,16 @@ fun MapScreen(
         ) {
             EventideClustering(
                 items = viewState.stations,
-                onClusterClick = { cluster ->
-                    scope.launch {
-                        viewModel.cameraState.animate(cluster.clusterZoomCameraUpdate())
-                    }
-                    false
-                },
-                onClusterItemClick = {
-                    viewModel.handleAction(MapAction.GetTidesForStation(it.station.id))
-                  true
-                },
+                onClusterClick = onClusterClick,
+                onClusterItemClick = onClusterItemClick,
                 onClusterItemInfoWindowClick = {},
                 onClusterItemInfoWindowLongClick = {},
-              clusterContent = { ClusterPin(it.size.toString()) },
-              clusterItemContent = { StationPin(name = it.station.name) }
+                clusterContent = { cluster ->
+                    ClusterPin(cluster.size.toString())
+                },
+                clusterItemContent = { item ->
+                    StationPin(name = item.station.name)
+                }
             )
         }
 

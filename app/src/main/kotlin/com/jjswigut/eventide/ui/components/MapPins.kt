@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,7 +46,7 @@ fun StationPin(name: String) {
           modifier = Modifier.size(56.dp)
         )
         Spacer(Modifier.height(2.dp))
-        StrokedText(text = name)
+      OptimizedStrokedText(text = name)
     }
 }
 
@@ -69,6 +70,52 @@ fun ClusterPin(size: String) {
 }
 
 @Composable
+private fun OptimizedStrokedText(
+  text: String,
+  modifier: Modifier = Modifier,
+) {
+  // Use a layered approach with caching for better performance
+  val strokeStyle = remember {
+    TextStyle(
+      fontSize = 14.sp,
+      fontWeight = FontWeight(700),
+      drawStyle = Stroke(width = 7f, join = StrokeJoin.Round)
+    )
+  }
+
+  val fillStyle = remember {
+    TextStyle(
+      fontSize = 14.sp,
+      fontWeight = FontWeight(700)
+    )
+  }
+
+  Box(
+    modifier = modifier,
+    contentAlignment = Alignment.Center,
+  ) {
+    // Stroke layer
+    Text(
+      text = text,
+      textAlign = TextAlign.Center,
+      style = strokeStyle,
+      overflow = TextOverflow.Ellipsis,
+      color = Color.White,
+      maxLines = 3,
+    )
+    // Fill layer
+    Text(
+      text = text,
+      textAlign = TextAlign.Center,
+      style = fillStyle,
+      overflow = TextOverflow.Ellipsis,
+      color = Color.Black,
+      maxLines = 3,
+    )
+  }
+}
+
+@Composable
 fun StrokedText(
     text: String,
     modifier: Modifier = Modifier,
@@ -80,16 +127,20 @@ fun StrokedText(
     strokeColor: Color = Color.White,
   strokeWidth: Dp = 4.dp,
 ) {
-    Box(
+  val strokeStyle = remember(style, strokeWidth) {
+    style.copy(
+      drawStyle = Stroke(width = strokeWidth.value + 3f, join = StrokeJoin.Round)
+    )
+  }
+
+  Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = text,
             textAlign = textAlign,
-            style = style.copy(
-                drawStyle = Stroke(width = strokeWidth.value + 3f, join = StrokeJoin.Round),
-            ),
+          style = strokeStyle,
             overflow = overflow,
             color = strokeColor,
             maxLines = maxLines,

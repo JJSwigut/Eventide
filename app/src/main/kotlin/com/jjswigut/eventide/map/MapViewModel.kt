@@ -69,6 +69,11 @@ class MapViewModel(
     private var getStationsJob: Job? = null
     private var allStations: List<StationClusterItem> = emptyList()
     private var isInitialLoad = true
+    private var lastBounds: LatLngBounds? = null
+    private var mapMotionDebounceJob: Job? = null
+
+    // Debounce delay for map motion to reduce excessive station fetches
+    private val MAP_MOTION_DEBOUNCE_MS = 200L
 
     val cameraState = CameraPositionState(
         CameraPosition(
@@ -230,6 +235,8 @@ class MapViewModel(
 
     private suspend fun handleMapMotion(isMoving: Boolean, bounds: LatLngBounds?) {
         if (isMoving) {
+            // Cancel any pending debounced fetch
+            mapMotionDebounceJob?.cancel()
             getStationsJob?.cancel()
             // Hide empty state while moving
             updateViewState {
@@ -237,9 +244,61 @@ class MapViewModel(
             }
         } else {
             bounds?.let {
-                getStations(it)
+                // Only fetch if bounds changed significantly (more than 10% area change)
+                if (shouldFetchStations(it)) {
+                    // Debounce the fetch to avoid rapid successive calls
+                    mapMotionDebounceJob?.cancel()
+                    mapMotionDebounceJob = viewModelScope.launch(dispatcher.io) {
+                        delay(MAP_MOTION_DEBOUNCE_MS)
+                        lastBounds = it
+                        getStations(it)
+                    }
+                }
             }
         }
+    }
+
+    private fun shouldFetchStations(newBounds: LatLngBounds): Boolean {
+        val oldBounds = lastBounds ?: return true
+
+        // Calculate approximate area change
+        val oldArea = (oldBounds.northeast.latitude - oldBounds.southwest.latitude) *
+          (oldBounds.northeast.longitude - oldBounds.southwest.longitude)
+        val newArea = (newBounds.northeast.latitude - newBounds.southwest.latitude) *
+          (newBounds.northeast.longitude - newBounds.southwest.longitude)
+
+        // Only fetch if area changed by more than 10% or bounds don't overlap significantly
+        val areaChangeRatio = kotlin.math.abs(newArea - oldArea) / oldArea
+        return areaChangeRatio > 0.1 || !boundsOverlapSignificantly(oldBounds, newBounds)
+    }
+
+    private fun boundsOverlapSignificantly(
+        bounds1: LatLngBounds,
+        bounds2: LatLngBounds,
+    ): Boolean {
+        // Check if bounds overlap by at least 70%
+        val intersectNE = LatLng(
+            minOf(bounds1.northeast.latitude, bounds2.northeast.latitude),
+            minOf(bounds1.northeast.longitude, bounds2.northeast.longitude)
+        )
+        val intersectSW = LatLng(
+            maxOf(bounds1.southwest.latitude, bounds2.southwest.latitude),
+            maxOf(bounds1.southwest.longitude, bounds2.southwest.longitude)
+        )
+
+        // Check if there's a valid intersection
+        if (intersectNE.latitude < intersectSW.latitude ||
+            intersectNE.longitude < intersectSW.longitude
+        ) {
+            return false
+        }
+
+        val intersectArea = (intersectNE.latitude - intersectSW.latitude) *
+          (intersectNE.longitude - intersectSW.longitude)
+        val bounds1Area = (bounds1.northeast.latitude - bounds1.southwest.latitude) *
+          (bounds1.northeast.longitude - bounds1.southwest.longitude)
+
+        return intersectArea / bounds1Area > 0.7
     }
 
     private suspend fun getStations(bounds: LatLngBounds) {
