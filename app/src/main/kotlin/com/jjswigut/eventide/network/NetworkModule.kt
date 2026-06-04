@@ -20,24 +20,24 @@ val networkModule = module {
                         readTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
                         writeTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
                     }
-                }
-            )
+                },
+            ),
         )
     }
 
-  single<WeatherService> {
-    WeatherServiceImpl(
-      client = WeatherServiceClient(
-        OkHttp.create {
-          config {
-            connectTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
-            readTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
-            writeTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
-          }
-        }
-      )
-    )
-  }
+    single<WeatherService> {
+        WeatherServiceImpl(
+            client = WeatherServiceClient(
+                OkHttp.create {
+                    config {
+                        connectTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
+                        readTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
+                        writeTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
+                    }
+                },
+            ),
+        )
+    }
 }
 
 private const val timeout = 60_000

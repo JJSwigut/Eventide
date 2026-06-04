@@ -22,11 +22,11 @@ data class StationsResponse(
         val tidepredoffsets: Tidepredoffsets,
         val timemeridian: Int?,
         val timezonecorr: Int,
-        val type: String
+        val type: String,
     ) {
         @Serializable
         data class Tidepredoffsets(
-            val self: String
+            val self: String,
         )
     }
 }

@@ -14,7 +14,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 class NoaaServiceImpl(
-    private val client: NoaaServiceClient
+    private val client: NoaaServiceClient,
 ) : NoaaService {
     override suspend fun getStations(): Either<StationsResponse, GenericError> {
         return runCatching {
@@ -30,13 +30,13 @@ class NoaaServiceImpl(
                     UnknownError()
                 }
                 Either.failure(error)
-            }
+            },
         )
     }
 
     override suspend fun getTidesForStation(stationID: String): Either<TidesResponse, GenericError> {
         val startDate = LocalDate.now()
-      val endDate = startDate.plusDays(7)
+        val endDate = startDate.plusDays(7)
 
         return runCatching {
             client.getTides(
@@ -55,7 +55,7 @@ class NoaaServiceImpl(
                     UnknownError()
                 }
                 Either.failure(error)
-            }
+            },
         )
     }
 

@@ -30,31 +30,31 @@ class MainActivity : ComponentActivity() {
 
     private val requestPermissionLauncher =
         registerForActivityResult(
-            RequestPermission()
+            RequestPermission(),
         ) { isGranted: Boolean ->
             hasLocationPermission = isGranted
             setupMapScreen()
         }
 
-
     private fun requestLocationPermission() {
         when {
             ContextCompat.checkSelfPermission(
                 this,
-                ACCESS_COARSE_LOCATION
+                ACCESS_COARSE_LOCATION,
             ) == PackageManager.PERMISSION_GRANTED -> {
                 hasLocationPermission = true
                 setupMapScreen()
             }
             ActivityCompat.shouldShowRequestPermissionRationale(
-                this, ACCESS_COARSE_LOCATION
+                this,
+                ACCESS_COARSE_LOCATION,
             ) -> {
                 hasLocationPermission = false // todo show rationale
                 setupMapScreen()
             }
             else -> {
                 requestPermissionLauncher.launch(
-                    ACCESS_COARSE_LOCATION
+                    ACCESS_COARSE_LOCATION,
                 )
             }
         }
@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity() {
             EventideTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = MaterialTheme.colorScheme.background,
                 ) {
                     MapScreen(
                         hasLocationPermission = hasLocationPermission,

@@ -9,7 +9,9 @@ fun mapModule(context: Context) = module {
     single { LocationServices.getFusedLocationProviderClient(context) }
     viewModel {
         MapViewModel(
-            get(), get(), get()
+            get(),
+            get(),
+            get(),
         )
     }
 }

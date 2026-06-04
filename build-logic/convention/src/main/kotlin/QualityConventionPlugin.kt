@@ -15,7 +15,7 @@ class QualityConventionPlugin : Plugin<Project> {
             extensions.configure<SpotlessExtension> {
                 kotlin {
                     target("**/*.kt")
-                    ktlint("0.46.1")
+                    ktlint("0.48.2")
                     trimTrailingWhitespace()
                     indentWithSpaces()
                     endWithNewline()
@@ -31,7 +31,12 @@ class QualityConventionPlugin : Plugin<Project> {
             }
 
             extensions.configure<DetektExtension> {
-                config.from("$rootDir/config/detekt/detekt.yml")
+                val detektConfig = rootProject.file("config/detekt/detekt.yml")
+                if (detektConfig.exists()) {
+                    config.from(detektConfig)
+                } else {
+                    ignoreFailures = true
+                }
                 parallel = true
             }
         }

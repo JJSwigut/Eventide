@@ -22,13 +22,15 @@ build/
 
 # Local configuration files (sensitive)
 local.properties
-app/keystore.properties # IMPORTANT
-eventide.jks # IMPORTANT
-eventide_certificate.pem # IMPORTANT
+# IMPORTANT: signing credentials must stay local.
+app/keystore.properties
+eventide.jks
+eventide_certificate.pem
 
 # Android Studio / System files
 .DS_Store
-**/.DS_Store # Covers .DS_Store in any directory
+# Covers .DS_Store in any directory.
+**/.DS_Store
 captures/
 .externalNativeBuild/
 .cxx/

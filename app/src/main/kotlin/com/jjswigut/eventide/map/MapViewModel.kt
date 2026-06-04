@@ -46,18 +46,26 @@ import kotlin.math.sqrt
 
 private val listOfButtons = persistentListOf(
     MenuItem(
-        text = "", iconRes = R.drawable.arrow_up, action = CloseClicked
+        text = "",
+        iconRes = R.drawable.arrow_up,
+        action = CloseClicked,
     ),
     MenuItem(
-        text = "", iconRes = R.drawable.arrow_up, action = CloseClicked
+        text = "",
+        iconRes = R.drawable.arrow_up,
+        action = CloseClicked,
     ),
     MenuItem(
-        text = "", iconRes = R.drawable.arrow_up, action = CloseClicked
+        text = "",
+        iconRes = R.drawable.arrow_up,
+        action = CloseClicked,
     ),
 )
 
 private val mainButton = MenuItem(
-    "", R.drawable.menu_icon, MenuClicked
+    "",
+    R.drawable.menu_icon,
+    MenuClicked,
 )
 
 class MapViewModel(
@@ -81,7 +89,7 @@ class MapViewModel(
             11f,
             0f,
             0f,
-        )
+        ),
     )
 
     fun handleAction(action: Action) {
@@ -106,7 +114,7 @@ class MapViewModel(
                     updateViewState {
                         copy(
                             listOfTideDays = null,
-                            showEmptyState = stations.isEmpty() && isMapLoaded
+                            showEmptyState = stations.isEmpty() && isMapLoaded,
                         )
                     }
                 }
@@ -163,8 +171,8 @@ class MapViewModel(
         val dLat = Math.toRadians(pos2.latitude - pos1.latitude)
         val dLng = Math.toRadians(pos2.longitude - pos1.longitude)
         val a = sin(dLat / 2) * sin(dLat / 2) +
-          cos(Math.toRadians(pos1.latitude)) * cos(Math.toRadians(pos2.latitude)) *
-          sin(dLng / 2) * sin(dLng / 2)
+            cos(Math.toRadians(pos1.latitude)) * cos(Math.toRadians(pos2.latitude)) *
+            sin(dLng / 2) * sin(dLng / 2)
         val c = 2 * atan2(sqrt(a), sqrt(1 - a))
         return earthRadius * c
     }
@@ -177,14 +185,14 @@ class MapViewModel(
                 tides = emptyList(),
                 weather = null,
                 isWeatherLoading = true,
-                isTidesLoading = true
+                isTidesLoading = true,
             )
         }
 
         updateViewState {
             copy(
                 listOfTideDays = placeholderCards.toImmutableList(),
-                showEmptyState = false
+                showEmptyState = false,
             )
         }
 
@@ -196,7 +204,7 @@ class MapViewModel(
                     val tidesWithLoadingWeather = tideDays.map {
                         it.copy(
                             isTidesLoading = false,
-                            isWeatherLoading = true
+                            isWeatherLoading = true,
                         )
                     }
                     updateViewState {
@@ -216,19 +224,19 @@ class MapViewModel(
                                 val tidesWithoutWeather = tideDays.map {
                                     it.copy(
                                         isTidesLoading = false,
-                                        isWeatherLoading = false
+                                        isWeatherLoading = false,
                                     )
                                 }
                                 updateViewState {
                                     copy(listOfTideDays = tidesWithoutWeather.toImmutableList())
                                 }
-                            }
+                            },
                         )
                     }
                 },
                 onError = {
-                    //todo add kermit logging
-                }
+                    // todo add kermit logging
+                },
             )
         }
     }
@@ -263,9 +271,9 @@ class MapViewModel(
 
         // Calculate approximate area change
         val oldArea = (oldBounds.northeast.latitude - oldBounds.southwest.latitude) *
-          (oldBounds.northeast.longitude - oldBounds.southwest.longitude)
+            (oldBounds.northeast.longitude - oldBounds.southwest.longitude)
         val newArea = (newBounds.northeast.latitude - newBounds.southwest.latitude) *
-          (newBounds.northeast.longitude - newBounds.southwest.longitude)
+            (newBounds.northeast.longitude - newBounds.southwest.longitude)
 
         // Only fetch if area changed by more than 10% or bounds don't overlap significantly
         val areaChangeRatio = kotlin.math.abs(newArea - oldArea) / oldArea
@@ -279,11 +287,11 @@ class MapViewModel(
         // Check if bounds overlap by at least 70%
         val intersectNE = LatLng(
             minOf(bounds1.northeast.latitude, bounds2.northeast.latitude),
-            minOf(bounds1.northeast.longitude, bounds2.northeast.longitude)
+            minOf(bounds1.northeast.longitude, bounds2.northeast.longitude),
         )
         val intersectSW = LatLng(
             maxOf(bounds1.southwest.latitude, bounds2.southwest.latitude),
-            maxOf(bounds1.southwest.longitude, bounds2.southwest.longitude)
+            maxOf(bounds1.southwest.longitude, bounds2.southwest.longitude),
         )
 
         // Check if there's a valid intersection
@@ -294,9 +302,9 @@ class MapViewModel(
         }
 
         val intersectArea = (intersectNE.latitude - intersectSW.latitude) *
-          (intersectNE.longitude - intersectSW.longitude)
+            (intersectNE.longitude - intersectSW.longitude)
         val bounds1Area = (bounds1.northeast.latitude - bounds1.southwest.latitude) *
-          (bounds1.northeast.longitude - bounds1.southwest.longitude)
+            (bounds1.northeast.longitude - bounds1.southwest.longitude)
 
         return intersectArea / bounds1Area > 0.7
     }
@@ -309,13 +317,12 @@ class MapViewModel(
                     updateViewState {
                         copy(
                             stations = stationItems.toImmutableList(),
-                            showEmptyState = stationItems.isEmpty() && isMapLoaded
+                            showEmptyState = stationItems.isEmpty() && isMapLoaded,
                         )
                     }
                 },
                 onError = {
-
-                }
+                },
             )
         }
     }
@@ -353,7 +360,7 @@ class MapViewModel(
             },
             onError = {
                 allStations = emptyList()
-            }
+            },
         )
 
         updateViewState {
@@ -367,7 +374,7 @@ class MapViewModel(
             val location = locationClient.lastLocation.await()
             animateCameraPosition(location.latLng())
         } catch (e: Exception) {
-            //todo add kermit logging
+            // todo add kermit logging
         }
     }
 
@@ -380,8 +387,8 @@ class MapViewModel(
                         zoom ?: StartZoomLevel,
                         0f,
                         0f,
-                    )
-                )
+                    ),
+                ),
             )
         }
     }
@@ -397,13 +404,11 @@ class MapViewModel(
                 centerButton = mainButton,
                 outsideButtons = listOfButtons,
                 expanded = false,
-            )
-        )
+            ),
+        ),
     )
 
-
     val viewState: StateFlow<MapViewState> = _viewState.asStateFlow()
-
 
     private suspend fun updateViewState(viewState: MapViewState.() -> MapViewState) {
         _viewState.emit(viewState.invoke(this.viewState.value))
@@ -427,7 +432,7 @@ data class MapViewState(
 data class MenuState(
     val expanded: Boolean,
     val centerButton: MenuItem,
-    val outsideButtons: ImmutableList<MenuItem>
+    val outsideButtons: ImmutableList<MenuItem>,
 )
 
 sealed interface MapAction : Action {

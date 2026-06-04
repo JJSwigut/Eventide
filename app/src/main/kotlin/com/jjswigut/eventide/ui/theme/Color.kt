@@ -1,6 +1,5 @@
 package com.jjswigut.eventide.ui.theme
 
-
 import androidx.compose.ui.graphics.Color
 
 val Primary = Color(0xFF00838e)

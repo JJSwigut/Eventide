@@ -10,14 +10,14 @@ data class Tide(
 )
 
 data class TideDay(
-  val date: String,
-  val tides: List<Tide>,
-  val weather: Weather? = null,
-  val isWeatherLoading: Boolean = false,
-  val isTidesLoading: Boolean = false,
+    val date: String,
+    val tides: List<Tide>,
+    val weather: Weather? = null,
+    val isWeatherLoading: Boolean = false,
+    val isTidesLoading: Boolean = false,
 )
 
 enum class TideValue(@DrawableRes val iconRes: Int) {
     Low(R.drawable.arrow_down),
-    High(R.drawable.arrow_up)
+    High(R.drawable.arrow_up),
 }

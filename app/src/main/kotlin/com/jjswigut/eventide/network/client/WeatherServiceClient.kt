@@ -15,47 +15,47 @@ import kotlinx.serialization.json.Json
  * @param engine The HTTP client engine used for network requests.
  */
 class WeatherServiceClient(engine: HttpClientEngine) {
-  private val client = HttpClient(engine) {
-    install(ContentNegotiation) {
-      json(
-        Json {
-          ignoreUnknownKeys = true
+    private val client = HttpClient(engine) {
+        install(ContentNegotiation) {
+            json(
+                Json {
+                    ignoreUnknownKeys = true
+                },
+            )
         }
-      )
+        defaultRequest {
+            header("User-Agent", "Eventide/1.0 (jjswigut@gmail.com)")
+        }
     }
-    defaultRequest {
-      header("User-Agent", "Eventide/1.0 (jjswigut@gmail.com)")
+
+    /**
+     * Get grid coordinates for a latitude/longitude.
+     * This is required before fetching the forecast.
+     *
+     * @param latitude Latitude in decimal degrees
+     * @param longitude Longitude in decimal degrees
+     */
+    suspend fun getGridPoint(
+        latitude: Double,
+        longitude: Double,
+    ) =
+        client.get("$BASE_URL/points/$latitude,$longitude")
+
+    /**
+     * Get 7-day forecast for a grid location.
+     *
+     * @param office NWS office code (e.g., "LWX")
+     * @param gridX Grid X coordinate
+     * @param gridY Grid Y coordinate
+     */
+    suspend fun getForecast(
+        office: String,
+        gridX: Int,
+        gridY: Int,
+    ) =
+        client.get("$BASE_URL/gridpoints/$office/$gridX,$gridY/forecast")
+
+    companion object {
+        private const val BASE_URL = "https://api.weather.gov"
     }
-  }
-
-  /**
-   * Get grid coordinates for a latitude/longitude.
-   * This is required before fetching the forecast.
-   *
-   * @param latitude Latitude in decimal degrees
-   * @param longitude Longitude in decimal degrees
-   */
-  suspend fun getGridPoint(
-    latitude: Double,
-    longitude: Double,
-  ) =
-    client.get("$BASE_URL/points/$latitude,$longitude")
-
-  /**
-   * Get 7-day forecast for a grid location.
-   *
-   * @param office NWS office code (e.g., "LWX")
-   * @param gridX Grid X coordinate
-   * @param gridY Grid Y coordinate
-   */
-  suspend fun getForecast(
-    office: String,
-    gridX: Int,
-    gridY: Int,
-  ) =
-    client.get("$BASE_URL/gridpoints/$office/$gridX,$gridY/forecast")
-
-  companion object {
-    private const val BASE_URL = "https://api.weather.gov"
-  }
 }

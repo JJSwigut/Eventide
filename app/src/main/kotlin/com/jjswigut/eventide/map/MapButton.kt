@@ -12,11 +12,8 @@ import kotlinx.collections.immutable.ImmutableList
 fun MenuFab(
     isExpanded: Boolean,
     mainButton: @Composable () -> Unit,
-    menuButtons: ImmutableList<@Composable () -> Unit>
+    menuButtons: ImmutableList<@Composable () -> Unit>,
 ) {
-
-
     Box(modifier = Modifier.background(color = PrimaryLight, shape = CircleShape)) {
-
     }
 }

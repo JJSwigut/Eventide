@@ -10,7 +10,7 @@ val dbModule = module {
         AndroidSqliteDriver(
             schema = StationsDb.Schema,
             context = get(),
-            name = "Stations.db"
+            name = "Stations.db",
         )
     }
     single {

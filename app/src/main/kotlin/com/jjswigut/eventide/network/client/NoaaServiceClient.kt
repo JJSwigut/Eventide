@@ -20,7 +20,7 @@ class NoaaServiceClient(engine: HttpClientEngine) {
             json(
                 Json {
                     ignoreUnknownKeys = true
-                }
+                },
             )
         }
     }

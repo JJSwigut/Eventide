@@ -8,14 +8,14 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class WeatherPointsResponse(
-  val properties: WeatherPointsProperties,
+    val properties: WeatherPointsProperties,
 )
 
 @Serializable
 data class WeatherPointsProperties(
-  val gridId: String,        // Office code (e.g., "LWX")
-  val gridX: Int,             // Grid X coordinate
-  val gridY: Int,              // Grid Y coordinate
+    val gridId: String, // Office code (e.g., "LWX")
+    val gridX: Int, // Grid X coordinate
+    val gridY: Int, // Grid Y coordinate
 )
 
 /**
@@ -24,12 +24,12 @@ data class WeatherPointsProperties(
  */
 @Serializable
 data class WeatherForecastResponse(
-  val properties: WeatherForecastProperties,
+    val properties: WeatherForecastProperties,
 )
 
 @Serializable
 data class WeatherForecastProperties(
-  val periods: List<WeatherPeriod>,
+    val periods: List<WeatherPeriod>,
 )
 
 /**
@@ -38,16 +38,16 @@ data class WeatherForecastProperties(
  */
 @Serializable
 data class WeatherPeriod(
-  val number: Int,                    // Period number (1, 2, 3...)
-  val name: String,                   // "Today", "Tonight", "Monday", etc.
-  val startTime: String,              // ISO 8601 timestamp
-  val endTime: String,                // ISO 8601 timestamp
-  val isDaytime: Boolean,             // true for day periods, false for night
-  val temperature: Int,               // Temperature in Fahrenheit
-  val temperatureUnit: String,        // "F" or "C"
-  val windSpeed: String,              // e.g., "5 to 10 mph"
-  val windDirection: String,          // e.g., "SW"
-  val icon: String,                   // URL to weather icon
-  val shortForecast: String,          // e.g., "Partly Cloudy"
-  val detailedForecast: String,        // Longer description
+    val number: Int, // Period number (1, 2, 3...)
+    val name: String, // "Today", "Tonight", "Monday", etc.
+    val startTime: String, // ISO 8601 timestamp
+    val endTime: String, // ISO 8601 timestamp
+    val isDaytime: Boolean, // true for day periods, false for night
+    val temperature: Int, // Temperature in Fahrenheit
+    val temperatureUnit: String, // "F" or "C"
+    val windSpeed: String, // e.g., "5 to 10 mph"
+    val windDirection: String, // e.g., "SW"
+    val icon: String, // URL to weather icon
+    val shortForecast: String, // e.g., "Partly Cloudy"
+    val detailedForecast: String, // Longer description
 )

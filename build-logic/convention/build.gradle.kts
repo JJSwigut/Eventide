@@ -31,9 +31,5 @@ gradlePlugin {
             id = "eventide.quality"
             implementationClass = "QualityConventionPlugin"
         }
-        register("db") {
-            id = "eventide.db"
-            implementationClass = "DbConventionPlugin"
-        }
     }
 }

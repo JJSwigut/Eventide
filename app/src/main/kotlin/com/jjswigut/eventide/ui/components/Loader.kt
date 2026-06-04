@@ -27,27 +27,27 @@ fun FullScreenLoader(
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn(tween(200)),
-        exit = fadeOut(tween(200))
+        exit = fadeOut(tween(200)),
     ) {
         Box(
             modifier = modifier
                 .fillMaxSize()
                 .background(color = Color.Black.copy(alpha = .56f))
-                .pointerInput(Unit) {/* intercept clicks */ },
-            contentAlignment = Alignment.Center
+                .pointerInput(Unit) { /* intercept clicks */ },
+            contentAlignment = Alignment.Center,
         ) {
             Box(
                 modifier = Modifier
                     .size(60.dp)
                     .background(
                         color = MaterialTheme.colorScheme.surface,
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp),
                     ),
                 contentAlignment = Companion.Center,
             ) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(45.dp),
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
         }

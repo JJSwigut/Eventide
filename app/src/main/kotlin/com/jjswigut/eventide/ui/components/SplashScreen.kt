@@ -8,7 +8,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,24 +18,24 @@ import com.jjswigut.eventide.R
 
 @Composable
 fun SplashScreen(
-  visible: Boolean,
-  modifier: Modifier = Modifier,
+    visible: Boolean,
+    modifier: Modifier = Modifier,
 ) {
-  AnimatedVisibility(
-    visible = visible,
-    exit = fadeOut(tween(500))
-  ) {
-    Box(
-      modifier = modifier
-        .fillMaxSize()
-        .background(color = Color(0xFF65BAC3)),
-      contentAlignment = Alignment.Center
+    AnimatedVisibility(
+        visible = visible,
+        exit = fadeOut(tween(500)),
     ) {
-      Image(
-        painter = painterResource(id = R.drawable.ic_eventide_foreground),
-        contentDescription = "Eventide Logo",
-        modifier = Modifier.size(240.dp)
-      )
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(color = Color(0xFF65BAC3)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_eventide_foreground),
+                contentDescription = "Eventide Logo",
+                modifier = Modifier.size(240.dp),
+            )
+        }
     }
-  }
 }

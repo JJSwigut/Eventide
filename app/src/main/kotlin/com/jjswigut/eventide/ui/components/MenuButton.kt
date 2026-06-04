@@ -44,7 +44,7 @@ fun MenuButton(
         modifier = modifier
             .animateContentSize()
             .padding(16.dp),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
@@ -53,7 +53,7 @@ fun MenuButton(
                 .clip(CircleShape)
                 .shadow(10.dp, CircleShape)
                 .clickable { actionHandler(centerButton.action) },
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             Image(
                 painter = painterResource(if (isExpanded) R.drawable.close_icon else centerButton.iconRes),
@@ -69,7 +69,7 @@ fun MenuButton(
             menuButtons.forEachIndexed { index, menuButton ->
                 val angleInRadians = Math.toRadians(angleOffset.toDouble() * index)
                 val baseOffset = with(
-                    LocalDensity.current
+                    LocalDensity.current,
                 ) { mainButtonSize.toPx() + spacing.toPx() }
 
                 val xOffset = (cos(angleInRadians) * baseOffset * index).dp
@@ -84,13 +84,12 @@ fun MenuButton(
                 OutsideButton(
                     menuButton = menuButton,
                     modifier = outsideButtonModifier,
-                    onClick = actionHandler
+                    onClick = actionHandler,
                 )
             }
         }
     }
 }
-
 
 private fun calculateMaxExtension(count: Int, buttonSize: Dp, spacing: Dp): Dp {
     return (buttonSize + spacing) * count
@@ -102,18 +101,19 @@ private fun OutsideButton(
     menuButton: MenuItem,
     onClick: (Action) -> Unit,
 ) {
-    Column(modifier = modifier
-        .size(40.dp)
-        .clip(CircleShape)
-        .clickable {
-            onClick(menuButton.action)
-        },
+    Column(
+        modifier = modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .clickable {
+                onClick(menuButton.action)
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
     ) {
         Icon(
             painter = painterResource(id = menuButton.iconRes),
-            contentDescription = null
+            contentDescription = null,
         )
     }
 }
@@ -121,7 +121,7 @@ private fun OutsideButton(
 data class MenuItem(
     val text: String,
     @DrawableRes val iconRes: Int,
-    val action: Action
+    val action: Action,
 )
 
 interface Action

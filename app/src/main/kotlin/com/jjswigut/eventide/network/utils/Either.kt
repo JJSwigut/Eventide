@@ -30,7 +30,7 @@ sealed class Either<out S, out F> {
  * @return A new [Either] constructed with the transformed success value
  */
 inline fun <S1 : Any, F1 : Any, S2 : Any> Either<S1, F1>.processSuccess(
-    crossinline success: (S1) -> S2
+    crossinline success: (S1) -> S2,
 ): Either<S2, F1> {
     return when (this) {
         is Either.Success -> {
@@ -52,7 +52,7 @@ inline fun <S1 : Any, F1 : Any, S2 : Any> Either<S1, F1>.processSuccess(
 
 suspend fun <S, F> Either<S, F>.process(
     onSuccess: suspend (value: S) -> Unit = {},
-    onError: suspend (error: F) -> Unit = {}
+    onError: suspend (error: F) -> Unit = {},
 ) {
     when (this) {
         is Either.Success -> onSuccess.invoke(value)

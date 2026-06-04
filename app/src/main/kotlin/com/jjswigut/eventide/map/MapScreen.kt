@@ -45,7 +45,7 @@ fun MapScreen(
         mutableStateOf(
             MapProperties(
                 isMyLocationEnabled = hasLocationPermission,
-            )
+            ),
         )
     }
 
@@ -54,7 +54,7 @@ fun MapScreen(
             MapUiSettings(
                 zoomControlsEnabled = false,
                 myLocationButtonEnabled = false,
-            )
+            ),
         )
     }
 
@@ -66,8 +66,8 @@ fun MapScreen(
         viewModel.handleAction(
             HandleMapMotion(
                 isMoving = viewModel.cameraState.isMoving,
-                bounds = viewModel.cameraState.latLngBounds
-            )
+                bounds = viewModel.cameraState.latLngBounds,
+            ),
         )
     }
 
@@ -84,7 +84,7 @@ fun MapScreen(
     val onClusterItemClick = remember {
         { item: com.jjswigut.eventide.map.models.StationClusterItem ->
             viewModel.handleAction(
-                com.jjswigut.eventide.map.MapAction.GetTidesForStation(item.station.id)
+                com.jjswigut.eventide.map.MapAction.GetTidesForStation(item.station.id),
             )
             true
         }
@@ -98,7 +98,7 @@ fun MapScreen(
             uiSettings = mapUiSettings,
             onMapLoaded = {
                 viewModel.handleAction(MapLoaded)
-            }
+            },
         ) {
             EventideClustering(
                 items = viewState.stations,
@@ -111,7 +111,7 @@ fun MapScreen(
                 },
                 clusterItemContent = { item ->
                     StationPin(name = item.station.name)
-                }
+                },
             )
         }
 
@@ -121,14 +121,14 @@ fun MapScreen(
             visible = viewState.showEmptyState,
             onNavigateToNearest = {
                 viewModel.handleAction(NavigateToNearestStation)
-            }
+            },
         )
 
         viewState.listOfTideDays?.let { tideDays ->
             StationInfoRow(
-              modifier = Modifier.align(Alignment.Center),
+                modifier = Modifier.align(Alignment.Center),
                 list = tideDays,
-                actionHandler = viewModel::handleAction
+                actionHandler = viewModel::handleAction,
             )
         }
     }
@@ -138,7 +138,7 @@ private const val CLUSTER_ZOOM_PADDING = 150
 
 fun Cluster<*>.clusterZoomCameraUpdate(): CameraUpdate {
     val latLngBoundsBuilder = LatLngBounds.Builder()
-  items.forEach { latLngBoundsBuilder.include(it.position) }
+    items.forEach { latLngBoundsBuilder.include(it.position) }
     val bounds = latLngBoundsBuilder.build()
     return CameraUpdateFactory.newLatLngBounds(bounds, CLUSTER_ZOOM_PADDING)
 }

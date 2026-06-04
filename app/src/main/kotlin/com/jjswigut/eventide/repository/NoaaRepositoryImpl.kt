@@ -48,7 +48,7 @@ class NoaaRepositoryImpl(
             val weatherDeferred = async {
                 fetchWeatherForStation(
                     latitude = station.latLng.latitude,
-                    longitude = station.latLng.longitude
+                    longitude = station.latLng.longitude,
                 )
             }
 
@@ -61,7 +61,7 @@ class NoaaRepositoryImpl(
 
                 tideDays.mapIndexed { index, tideDay ->
                     tideDay.copy(
-                        weather = weatherList.getOrNull(index)
+                        weather = weatherList.getOrNull(index),
                     )
                 }
             }
@@ -90,7 +90,7 @@ class NoaaRepositoryImpl(
             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
                 val weatherResult = fetchWeatherForStation(
                     latitude = station.latLng.latitude,
-                    longitude = station.latLng.longitude
+                    longitude = station.latLng.longitude,
                 )
 
                 val weatherList = weatherResult.getOrNull() ?: emptyList()
@@ -99,7 +99,7 @@ class NoaaRepositoryImpl(
                 val tidesWithWeather = tideDays.mapIndexed { index, tideDay ->
                     tideDay.copy(
                         weather = weatherList.getOrNull(index),
-                        isWeatherLoading = false
+                        isWeatherLoading = false,
                     )
                 }
 
@@ -122,7 +122,7 @@ class NoaaRepositoryImpl(
                 bounds.southwest.latitude,
                 bounds.northeast.latitude,
                 bounds.southwest.longitude,
-                bounds.northeast.longitude
+                bounds.northeast.longitude,
             ).executeAsList()
         }.fold(
             onSuccess = { list ->
@@ -130,7 +130,7 @@ class NoaaRepositoryImpl(
             },
             onFailure = {
                 Either.failure(DbError())
-            }
+            },
         )
     }
 
@@ -143,7 +143,7 @@ class NoaaRepositoryImpl(
             },
             onFailure = {
                 Either.failure(DbError())
-            }
+            },
         )
     }
 
@@ -187,7 +187,7 @@ class NoaaRepositoryImpl(
                     latitude = station.lat,
                     longitude = station.lng,
                     name = station.name,
-                    state = station.state
+                    state = station.state,
                 )
             }
             stationsDb.lastupdatedQueries.insertOrUpdateLastUpdated(System.currentTimeMillis())
@@ -197,8 +197,8 @@ class NoaaRepositoryImpl(
     private fun shouldUpdateStationList(): Boolean {
         return stationsDb.lastupdatedQueries.getLastUpdated()
             .executeAsOneOrNull()?.lastUpdated?.let { lastTimeUpdated ->
-                (System.currentTimeMillis() - THIRTY_DAYS_IN_MILLISECONDS) > lastTimeUpdated
-            } ?: true
+            (System.currentTimeMillis() - THIRTY_DAYS_IN_MILLISECONDS) > lastTimeUpdated
+        } ?: true
     }
 
     companion object {

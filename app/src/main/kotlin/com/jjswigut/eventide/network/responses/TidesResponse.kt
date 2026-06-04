@@ -5,14 +5,14 @@ import com.jjswigut.eventide.data.models.TideDay
 import com.jjswigut.eventide.data.models.TideValue.High
 import com.jjswigut.eventide.data.models.TideValue.Low
 import com.jjswigut.eventide.network.responses.TidesResponse.TideDTO
+import kotlinx.serialization.Serializable
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlinx.serialization.Serializable
 
 @Serializable
 data class TidesResponse(
-    val predictions: List<TideDTO>
+    val predictions: List<TideDTO>,
 ) {
     @Serializable
     data class TideDTO(
@@ -27,7 +27,7 @@ data class TidesResponse(
         }.map { (date, tideDTOS) ->
             TideDay(
                 date = date.format(dayFormatter),
-                tides = tideDTOS.map { it.toModel() }
+                tides = tideDTOS.map { it.toModel() },
             )
         }
     }
@@ -37,7 +37,7 @@ private fun TideDTO.toModel(): Tide {
     return Tide(
         time = LocalDateTime.parse(t, dateTimeParser).format(timeFormatter).lowercase(),
         tideValue = if (type == "H") High else Low,
-        height = v.convertMeterStringToFeet()
+        height = v.convertMeterStringToFeet(),
     )
 }
 

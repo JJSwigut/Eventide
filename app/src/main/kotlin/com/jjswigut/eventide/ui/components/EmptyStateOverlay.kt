@@ -30,68 +30,68 @@ import com.jjswigut.eventide.R
 
 @Composable
 fun EmptyStateOverlay(
-  visible: Boolean,
-  onNavigateToNearest: () -> Unit,
-  modifier: Modifier = Modifier,
+    visible: Boolean,
+    onNavigateToNearest: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-  AnimatedVisibility(
-    visible = visible,
-    enter = fadeIn(tween(300)),
-    exit = fadeOut(tween(300))
-  ) {
-    Box(
-      modifier = modifier
-        .fillMaxSize()
-        .background(color = Color.Black.copy(alpha = 0.75f)),
-      contentAlignment = Alignment.Center
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(300)),
+        exit = fadeOut(tween(300)),
     ) {
-      Column(
-        modifier = Modifier
-          .padding(32.dp)
-          .background(
-            color = MaterialTheme.colorScheme.surface,
-            shape = RoundedCornerShape(24.dp)
-          )
-          .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-      ) {
-        Image(
-          painter = painterResource(id = R.drawable.map_pin),
-          contentDescription = null,
-          modifier = Modifier.size(64.dp)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-          text = "No Tide Stations Nearby",
-          style = MaterialTheme.typography.headlineSmall,
-          fontWeight = FontWeight.Bold,
-          color = MaterialTheme.colorScheme.onSurface
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-          text = "Tap on a tide station marker to view tides and weather information for that location.",
-          style = MaterialTheme.typography.bodyMedium,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-          textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(
-          onClick = onNavigateToNearest,
-          shape = RoundedCornerShape(12.dp)
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(color = Color.Black.copy(alpha = 0.75f)),
+            contentAlignment = Alignment.Center,
         ) {
-          Text(
-            text = "Find Nearest Station",
-            style = MaterialTheme.typography.labelLarge
-          )
+            Column(
+                modifier = Modifier
+                    .padding(32.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(24.dp),
+                    )
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.map_pin),
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "No Tide Stations Nearby",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Tap on a tide station marker to view tides and weather information for that location.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(
+                    onClick = onNavigateToNearest,
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Text(
+                        text = "Find Nearest Station",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+            }
         }
-      }
     }
-  }
 }
