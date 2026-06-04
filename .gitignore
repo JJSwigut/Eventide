@@ -55,6 +55,13 @@ app/*.aab
 # User-specific Goose directory
 .goose/
 
+# Fastlane local output and credentials
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+fastlane/*service*.json
+
 # Other common ignores
 *.lock
 *.pid

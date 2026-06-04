@@ -1,0 +1,44 @@
+default_platform(:android)
+
+def env_or_default(name, default)
+  value = ENV[name].to_s.strip
+  value.empty? ? default : value
+end
+
+platform :android do
+  desc "Build a signed release Android App Bundle"
+  lane :build_release do |options|
+    properties = {}
+    version_code = options[:version_code] || ENV["VERSION_CODE"]
+    properties["overrideVersionCode"] = version_code unless version_code.to_s.empty?
+
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: ".",
+      properties: properties
+    )
+  end
+
+  desc "Upload a signed release Android App Bundle to Google Play"
+  lane :deploy do |options|
+    aab = options[:aab] || Dir["app/build/outputs/bundle/release/*.aab"].max_by { |path| File.mtime(path) }
+    UI.user_error!("No release AAB found. Build :app:bundleRelease first or pass aab:/path/to/app.aab.") unless aab && File.exist?(aab)
+
+    json_key_data = ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"].to_s
+    json_key_data = ENV["SUPPLY_JSON_KEY_DATA"].to_s if json_key_data.empty?
+    UI.user_error!("Set GOOGLE_PLAY_SERVICE_ACCOUNT_JSON to the Google Play service-account JSON.") if json_key_data.empty?
+
+    upload_to_play_store(
+      package_name: "com.jjswigut.eventide",
+      aab: aab,
+      json_key_data: json_key_data,
+      track: env_or_default("PLAY_TRACK", "internal"),
+      release_status: env_or_default("PLAY_RELEASE_STATUS", "completed"),
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+end
