@@ -22,9 +22,11 @@ platform :android do
 
   desc "Upload a signed release Android App Bundle to Google Play"
   lane :deploy do |options|
+    repo_root = File.expand_path("..", __dir__)
     aab = options[:aab].to_s
     aab = ENV["AAB_PATH"].to_s if aab.empty?
-    aab = Dir["app/build/outputs/bundle/release/*.aab"].max_by { |path| File.mtime(path) } if aab.empty?
+    aab = Dir[File.join(repo_root, "app/build/outputs/bundle/release/*.aab")].max_by { |path| File.mtime(path) } if aab.empty?
+    aab = File.expand_path(aab, repo_root) unless aab.empty? || aab.start_with?("/")
     UI.user_error!("No release AAB found. Build :app:bundleRelease first or pass aab:/path/to/app.aab.") unless aab && File.exist?(aab)
 
     json_key_data = ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"].to_s
