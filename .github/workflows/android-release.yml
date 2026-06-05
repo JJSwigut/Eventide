@@ -1,6 +1,7 @@
 name: Android CI/CD Release
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main # Triggers on pushes to the main branch
