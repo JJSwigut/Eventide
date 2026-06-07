@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
@@ -104,7 +105,9 @@ private fun OutsideButton(
     Column(
         modifier = modifier
             .size(40.dp)
+            .background(shape = CircleShape, color = AppColor.container)
             .clip(CircleShape)
+            .shadow(8.dp, CircleShape)
             .clickable {
                 onClick(menuButton.action)
             },
@@ -114,6 +117,7 @@ private fun OutsideButton(
         Icon(
             painter = painterResource(id = menuButton.iconRes),
             contentDescription = null,
+            tint = Color.Unspecified,
         )
     }
 }

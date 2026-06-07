@@ -11,9 +11,11 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.CameraPositionState
 import com.jjswigut.eventide.R
+import com.jjswigut.eventide.data.models.Station
 import com.jjswigut.eventide.data.models.TideDay
 import com.jjswigut.eventide.dispatchers.Dispatcher
 import com.jjswigut.eventide.map.MapAction.CloseClicked
+import com.jjswigut.eventide.map.MapAction.CloseFavorites
 import com.jjswigut.eventide.map.MapAction.CloseTides
 import com.jjswigut.eventide.map.MapAction.GetTidesForStation
 import com.jjswigut.eventide.map.MapAction.GetUserLocation
@@ -22,8 +24,12 @@ import com.jjswigut.eventide.map.MapAction.Initialize
 import com.jjswigut.eventide.map.MapAction.MapLoaded
 import com.jjswigut.eventide.map.MapAction.MenuClicked
 import com.jjswigut.eventide.map.MapAction.NavigateToNearestStation
+import com.jjswigut.eventide.map.MapAction.OpenFavorite
+import com.jjswigut.eventide.map.MapAction.OpenFavorites
+import com.jjswigut.eventide.map.MapAction.ToggleFavorite
 import com.jjswigut.eventide.map.models.StationClusterItem
 import com.jjswigut.eventide.network.utils.process
+import com.jjswigut.eventide.repository.FavoritesRepository
 import com.jjswigut.eventide.repository.NoaaRepository
 import com.jjswigut.eventide.ui.components.Action
 import com.jjswigut.eventide.ui.components.MenuItem
@@ -37,6 +43,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlin.math.atan2
@@ -46,19 +53,9 @@ import kotlin.math.sqrt
 
 private val listOfButtons = persistentListOf(
     MenuItem(
-        text = "",
-        iconRes = R.drawable.arrow_up,
-        action = CloseClicked,
-    ),
-    MenuItem(
-        text = "",
-        iconRes = R.drawable.arrow_up,
-        action = CloseClicked,
-    ),
-    MenuItem(
-        text = "",
-        iconRes = R.drawable.arrow_up,
-        action = CloseClicked,
+        text = "Favorites",
+        iconRes = R.drawable.star_filled,
+        action = OpenFavorites,
     ),
 )
 
@@ -70,11 +67,13 @@ private val mainButton = MenuItem(
 
 class MapViewModel(
     private val noaaRepository: NoaaRepository,
+    private val favoritesRepository: FavoritesRepository,
     private val dispatcher: Dispatcher,
     private val locationClient: FusedLocationProviderClient,
 ) : ViewModel() {
 
     private var getStationsJob: Job? = null
+    private var favoritesJob: Job? = null
     private var allStations: List<StationClusterItem> = emptyList()
     private var isInitialLoad = true
     private var lastBounds: LatLngBounds? = null
@@ -96,6 +95,7 @@ class MapViewModel(
         viewModelScope.launch(dispatcher.io) {
             when (action) {
                 is Initialize -> {
+                    observeFavorites()
                     initialize(action.hasLocationPermission)
                 }
                 is MapLoaded -> {
@@ -114,12 +114,60 @@ class MapViewModel(
                     updateViewState {
                         copy(
                             listOfTideDays = null,
+                            selectedStation = null,
+                            isSelectedStationFavorite = false,
                             showEmptyState = stations.isEmpty() && isMapLoaded,
                         )
                     }
                 }
                 is NavigateToNearestStation -> {
                     navigateToNearestStation()
+                }
+                is ToggleFavorite -> {
+                    toggleFavorite()
+                }
+                is OpenFavorites -> {
+                    updateViewState {
+                        copy(
+                            showFavorites = true,
+                            menuState = menuState.copy(expanded = false),
+                        )
+                    }
+                }
+                is CloseFavorites -> {
+                    updateViewState {
+                        copy(showFavorites = false)
+                    }
+                }
+                is OpenFavorite -> {
+                    openFavorite(action.stationId)
+                }
+                is MenuClicked -> {
+                    updateViewState {
+                        copy(menuState = menuState.copy(expanded = !menuState.expanded))
+                    }
+                }
+                is CloseClicked -> {
+                    updateViewState {
+                        copy(menuState = menuState.copy(expanded = false))
+                    }
+                }
+            }
+        }
+    }
+
+    private fun observeFavorites() {
+        if (favoritesJob != null) return
+
+        favoritesJob = viewModelScope.launch(dispatcher.io) {
+            favoritesRepository.getFavorites().collectLatest { favorites ->
+                updateViewState {
+                    copy(
+                        favorites = favorites.toImmutableList(),
+                        isSelectedStationFavorite = selectedStation?.let { station ->
+                            favorites.any { it.id == station.id }
+                        } ?: false,
+                    )
                 }
             }
         }
@@ -178,6 +226,8 @@ class MapViewModel(
     }
 
     private suspend fun getTidesForStation(stationId: String) {
+        val station = getStationForId(stationId)
+
         // Show 7 placeholder cards immediately with loading state
         val placeholderCards = (1..7).map { dayIndex ->
             TideDay(
@@ -192,7 +242,10 @@ class MapViewModel(
         updateViewState {
             copy(
                 listOfTideDays = placeholderCards.toImmutableList(),
+                selectedStation = station,
+                isSelectedStationFavorite = favorites.any { it.id == stationId },
                 showEmptyState = false,
+                showFavorites = false,
             )
         }
 
@@ -327,6 +380,33 @@ class MapViewModel(
         }
     }
 
+    private suspend fun toggleFavorite() {
+        val station = viewState.value.selectedStation ?: return
+        val isFavorite = viewState.value.favorites.any { it.id == station.id }
+
+        if (isFavorite) {
+            favoritesRepository.removeFavorite(station.id)
+        } else {
+            favoritesRepository.addFavorite(station)
+        }
+    }
+
+    private suspend fun openFavorite(stationId: String) {
+        val station = viewState.value.favorites.firstOrNull { it.id == stationId } ?: return
+
+        updateViewState {
+            copy(showFavorites = false)
+        }
+        animateCameraPosition(target = station.latLng, zoom = 13f)
+        getTidesForStation(station.id)
+    }
+
+    private fun getStationForId(stationId: String): Station? {
+        return viewState.value.stations.firstOrNull { it.station.id == stationId }?.station
+            ?: allStations.firstOrNull { it.station.id == stationId }?.station
+            ?: viewState.value.favorites.firstOrNull { it.id == stationId }
+    }
+
     @SuppressLint("MissingPermission")
     private suspend fun initialize(hasLocationPermission: Boolean) = coroutineScope {
         val stationsFetch = async(dispatcher.io) { noaaRepository.fetchAndCacheStations() }
@@ -400,6 +480,10 @@ class MapViewModel(
             isMapLoaded = false,
             showEmptyState = false,
             listOfTideDays = null,
+            selectedStation = null,
+            isSelectedStationFavorite = false,
+            favorites = persistentListOf(),
+            showFavorites = false,
             menuState = MenuState(
                 centerButton = mainButton,
                 outsideButtons = listOfButtons,
@@ -426,6 +510,10 @@ data class MapViewState(
     val showEmptyState: Boolean,
     val stations: ImmutableList<StationClusterItem>,
     val listOfTideDays: ImmutableList<TideDay>?,
+    val selectedStation: Station?,
+    val isSelectedStationFavorite: Boolean,
+    val favorites: ImmutableList<Station>,
+    val showFavorites: Boolean,
     val menuState: MenuState,
 )
 
@@ -442,6 +530,10 @@ sealed interface MapAction : Action {
     data object GetUserLocation : MapAction
     data class GetTidesForStation(val stationId: String) : MapAction
     data object NavigateToNearestStation : MapAction
+    data object ToggleFavorite : MapAction
+    data object OpenFavorites : MapAction
+    data object CloseFavorites : MapAction
+    data class OpenFavorite(val stationId: String) : MapAction
 
     data object CloseTides : MapAction
 

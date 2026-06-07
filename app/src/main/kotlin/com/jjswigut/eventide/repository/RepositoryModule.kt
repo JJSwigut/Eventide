@@ -10,4 +10,10 @@ val repositoryModule = module {
             stationsDb = get(),
         )
     }
+    single<FavoritesRepository> {
+        FavoritesRepositoryImpl(
+            stationsDb = get(),
+            dispatcher = get(),
+        )
+    }
 }

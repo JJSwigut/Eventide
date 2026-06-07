@@ -13,3 +13,14 @@ fun List<StationEntity>.toModel(): List<Station> {
         )
     }
 }
+
+fun List<FavoriteStationEntity>.toFavoriteModel(): List<Station> {
+    return this.map {
+        Station(
+            id = it.id,
+            latLng = LatLng(it.latitude, it.longitude),
+            name = it.name,
+            state = it.state,
+        )
+    }
+}
