@@ -16,4 +16,10 @@ val repositoryModule = module {
             dispatcher = get(),
         )
     }
+    single<TideAlertRepository> {
+        TideAlertRepositoryImpl(
+            stationsDb = get(),
+            dispatcher = get(),
+        )
+    }
 }

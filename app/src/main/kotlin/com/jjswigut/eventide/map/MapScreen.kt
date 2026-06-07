@@ -28,6 +28,9 @@ import com.jjswigut.eventide.map.MapAction.Initialize
 import com.jjswigut.eventide.map.MapAction.MapLoaded
 import com.jjswigut.eventide.map.MapAction.NavigateToNearestStation
 import com.jjswigut.eventide.map.MapAction.OpenFavorite
+import com.jjswigut.eventide.map.MapAction.SetTideAlertFilter
+import com.jjswigut.eventide.map.MapAction.SetTideAlertLeadTime
+import com.jjswigut.eventide.map.MapAction.ToggleTideAlert
 import com.jjswigut.eventide.map.components.FavoritesPanel
 import com.jjswigut.eventide.map.components.StationInfoRow
 import com.jjswigut.eventide.ui.components.ClusterPin
@@ -153,8 +156,28 @@ fun MapScreen(
         if (viewState.showFavorites) {
             FavoritesPanel(
                 favorites = viewState.favorites,
+                alertPreferences = viewState.tideAlerts,
                 onFavoriteClick = {
                     viewModel.handleAction(OpenFavorite(it))
+                },
+                onAlertToggle = {
+                    viewModel.handleAction(ToggleTideAlert(it))
+                },
+                onLeadTimeSelected = { stationId, leadTimeMinutes ->
+                    viewModel.handleAction(
+                        SetTideAlertLeadTime(
+                            stationId = stationId,
+                            leadTimeMinutes = leadTimeMinutes,
+                        ),
+                    )
+                },
+                onFilterSelected = { stationId, tideAlertFilter ->
+                    viewModel.handleAction(
+                        SetTideAlertFilter(
+                            stationId = stationId,
+                            tideAlertFilter = tideAlertFilter,
+                        ),
+                    )
                 },
                 onClose = {
                     viewModel.handleAction(CloseFavorites)

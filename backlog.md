@@ -5,29 +5,6 @@ When a task is finished, delete it from this backlog.
 
 # Eventide Backlog
 
-## 2. Tide notifications / alerts
-
-**Goal:** "Notify me N minutes before the next low/high tide at a chosen station."
-
-**Why:** The core retention hook for the real audience (fishing, surfing, clamming, boating, tidepooling). Tide data is already timestamped and structured (`Tide.time`, `TideValue.Low/High`).
-
-**Depends on:** Task 1 (favorites) for choosing which stations to alert on.
-
-**Implementation notes:**
-- Add `POST_NOTIFICATIONS` permission to `AndroidManifest.xml` and request it at runtime (Android 13+). Add a notifications permission rationale flow alongside the existing location permission handling in `MainActivity`.
-- Use **WorkManager** to schedule alerts. Store alert preferences (station id, lead time, high/low/both) in settings (task 6) or a dedicated table.
-- A periodic/one-shot worker fetches upcoming tides for subscribed stations (reuse `NoaaRepository.getTidesForStation`), computes the next matching extreme, and schedules a notification at `tideTime - leadTime`.
-- Build a notification channel in `EventideApplication`.
-- UI: per-favorite "Alert" toggle + lead-time picker (e.g. 30/60/120 min) and high/low selection.
-- Handle reschedule on reboot (`BOOT_COMPLETED` receiver) and after each fire.
-
-**Acceptance:**
-- User can enable an alert on a favorite station with a chosen lead time.
-- A notification fires at the correct time before the next high/low.
-- Alerts survive app kill and device reboot.
-
----
-
 ## 3. Tide curve graph
 
 **Goal:** Replace the discrete high/low list with a smooth tide curve and a "you are here" marker for the current water level.

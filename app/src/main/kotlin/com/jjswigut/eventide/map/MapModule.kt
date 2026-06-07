@@ -13,6 +13,8 @@ fun mapModule(context: Context) = module {
             get(),
             get(),
             get(),
+            get(),
+            get(),
         )
     }
 }
