@@ -29,6 +29,7 @@ data class TidesResponse(
             TideDay(
                 date = date.format(dayFormatter),
                 tides = tideDTOS.map { it.toModel() },
+                dateValue = date,
             )
         }
     }

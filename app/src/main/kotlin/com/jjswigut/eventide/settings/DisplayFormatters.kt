@@ -1,16 +1,21 @@
 package com.jjswigut.eventide.settings
 
 import com.jjswigut.eventide.data.models.Tide
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 fun Tide.displayTime(settings: AppSettings): String {
     val dateTime = dateTime ?: return time
+    return dateTime.toLocalTime().displayTime(settings)
+}
+
+fun LocalTime.displayTime(settings: AppSettings): String {
     val formatter = when (settings.timeFormat) {
         TimeFormat.TwelveHour -> TWELVE_HOUR_TIME_FORMATTER
         TimeFormat.TwentyFourHour -> TWENTY_FOUR_HOUR_TIME_FORMATTER
     }
-    return dateTime.format(formatter).lowercase(Locale.US)
+    return format(formatter).lowercase(Locale.US)
 }
 
 fun Tide.displayHeight(settings: AppSettings): String {

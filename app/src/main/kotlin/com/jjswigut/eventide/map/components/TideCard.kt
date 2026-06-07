@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jjswigut.eventide.data.models.SunMoonData
 import com.jjswigut.eventide.data.models.Tide
 import com.jjswigut.eventide.data.models.TideDay
 import com.jjswigut.eventide.data.models.Weather
@@ -88,9 +89,11 @@ private class AdaptiveSize(availableHeightDp: Float) {
     val iconSize: Dp = (20 * scaleFactor).dp
     val tideRowPadding: Dp = (1 * scaleFactor).dp
     val windFontSize: TextUnit = (13 * scaleFactor).sp
+    val astroFontSize: TextUnit = (12 * scaleFactor).sp
     val letterSpacing: TextUnit = (1.0 * scaleFactor).sp
     val weatherSpacing: Dp = (4 * scaleFactor).dp
     val sectionHeaderPadding: Dp = (6 * scaleFactor).dp
+    val astroPadding: Dp = (8 * scaleFactor).dp
 }
 
 // Weather Temperature Colors
@@ -137,6 +140,15 @@ fun TideCard(
         ) {
             DateHeader(date = day.date, adaptiveSize = adaptiveSize)
 
+            day.sunMoonData?.let { sunMoonData ->
+                Spacer(Modifier.height(adaptiveSize.sectionSpacing))
+                SunMoonRow(
+                    sunMoonData = sunMoonData,
+                    adaptiveSize = adaptiveSize,
+                    settings = settings,
+                )
+            }
+
             Spacer(Modifier.height(adaptiveSize.sectionSpacing))
 
             TidesSection(
@@ -178,6 +190,46 @@ private fun DateHeader(
                 vertical = adaptiveSize.sectionHeaderPadding,
             ),
             text = date,
+        )
+    }
+}
+
+@Composable
+private fun SunMoonRow(
+    sunMoonData: SunMoonData,
+    adaptiveSize: AdaptiveSize,
+    settings: AppSettings,
+) {
+    val sunriseText = sunMoonData.sunrise?.displayTime(settings) ?: "--"
+    val sunsetText = sunMoonData.sunset?.displayTime(settings) ?: "--"
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = PrimaryLight.copy(alpha = 0.65f),
+                shape = RoundedCornerShape(TideCardDesign.sectionCornerRadius),
+            )
+            .padding(horizontal = adaptiveSize.astroPadding, vertical = adaptiveSize.sectionHeaderPadding),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            modifier = Modifier.weight(1f),
+            text = "☀ $sunriseText / $sunsetText",
+            fontSize = adaptiveSize.astroFontSize,
+            fontWeight = FontWeight.Bold,
+            color = BackgroundDark,
+            maxLines = 1,
+        )
+
+        Text(
+            text = "${sunMoonData.moonPhase.icon} ${sunMoonData.moonIlluminationPercent}%",
+            fontSize = adaptiveSize.astroFontSize,
+            fontWeight = FontWeight.Bold,
+            color = BackgroundDark,
+            maxLines = 1,
+            textAlign = TextAlign.End,
         )
     }
 }
