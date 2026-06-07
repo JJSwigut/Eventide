@@ -22,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -40,16 +39,24 @@ fun MenuButton(
     actionHandler: (Action) -> Unit,
 ) {
     val isExpanded by remember(expanded) { mutableStateOf(expanded) }
+    val mainButtonSize = 50.dp
+    val spacing = 8.dp
+    val containerSize = if (isExpanded) {
+        mainButtonSize + calculateMaxExtension(menuButtons.size, mainButtonSize, spacing)
+    } else {
+        mainButtonSize
+    }
 
     Box(
         modifier = modifier
             .animateContentSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.Center,
+            .padding(16.dp)
+            .size(containerSize),
+        contentAlignment = Alignment.BottomStart,
     ) {
         Box(
             modifier = Modifier
-                .size(50.dp)
+                .size(mainButtonSize)
                 .background(shape = CircleShape, color = AppColor.container)
                 .clip(CircleShape)
                 .shadow(10.dp, CircleShape)
@@ -63,28 +70,16 @@ fun MenuButton(
         }
 
         if (isExpanded) {
-            val mainButtonSize = 50.dp
-            val spacing = 8.dp
             val angleOffset = 45f
+            val baseOffset = mainButtonSize + spacing
 
             menuButtons.forEachIndexed { index, menuButton ->
-                val angleInRadians = Math.toRadians(angleOffset.toDouble() * index)
-                val baseOffset = with(
-                    LocalDensity.current,
-                ) { mainButtonSize.toPx() + spacing.toPx() }
-
-                val xOffset = (cos(angleInRadians) * baseOffset * index).dp
-                val yOffset = (sin(angleInRadians) * baseOffset * index).dp
-
-                val outsideButtonModifier = if (index == 0) {
-                    Modifier.offset(y = yOffset + mainButtonSize)
-                } else {
-                    Modifier.offset(x = xOffset, y = yOffset + mainButtonSize)
-                }
-
                 OutsideButton(
                     menuButton = menuButton,
-                    modifier = outsideButtonModifier,
+                    modifier = Modifier.offset(
+                        x = cos(menuButtonAngle(index, angleOffset)) * baseOffset,
+                        y = sin(menuButtonAngle(index, angleOffset)) * baseOffset,
+                    ),
                     onClick = actionHandler,
                 )
             }
@@ -95,6 +90,15 @@ fun MenuButton(
 private fun calculateMaxExtension(count: Int, buttonSize: Dp, spacing: Dp): Dp {
     return (buttonSize + spacing) * count
 }
+
+private fun menuButtonAngle(
+    index: Int,
+    angleOffset: Float,
+): Double {
+    return Math.toRadians((-90f + (angleOffset * index)).toDouble())
+}
+
+private operator fun Double.times(dp: Dp): Dp = (this * dp.value).dp
 
 @Composable
 private fun OutsideButton(
