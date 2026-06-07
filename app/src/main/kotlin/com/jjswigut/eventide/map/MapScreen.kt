@@ -22,16 +22,23 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.MapsComposeExperimentalApi
+import com.jjswigut.eventide.map.MapAction.ClearHomeStation
 import com.jjswigut.eventide.map.MapAction.CloseFavorites
+import com.jjswigut.eventide.map.MapAction.CloseSettings
 import com.jjswigut.eventide.map.MapAction.HandleMapMotion
 import com.jjswigut.eventide.map.MapAction.Initialize
 import com.jjswigut.eventide.map.MapAction.MapLoaded
 import com.jjswigut.eventide.map.MapAction.NavigateToNearestStation
 import com.jjswigut.eventide.map.MapAction.OpenFavorite
+import com.jjswigut.eventide.map.MapAction.SetHomeStation
+import com.jjswigut.eventide.map.MapAction.SetTempUnit
 import com.jjswigut.eventide.map.MapAction.SetTideAlertFilter
 import com.jjswigut.eventide.map.MapAction.SetTideAlertLeadTime
+import com.jjswigut.eventide.map.MapAction.SetTideUnit
+import com.jjswigut.eventide.map.MapAction.SetTimeFormat
 import com.jjswigut.eventide.map.MapAction.ToggleTideAlert
 import com.jjswigut.eventide.map.components.FavoritesPanel
+import com.jjswigut.eventide.map.components.SettingsPanel
 import com.jjswigut.eventide.map.components.StationInfoRow
 import com.jjswigut.eventide.ui.components.ClusterPin
 import com.jjswigut.eventide.ui.components.EmptyStateOverlay
@@ -139,6 +146,7 @@ fun MapScreen(
                 list = tideDays,
                 station = viewState.selectedStation,
                 isFavorite = viewState.isSelectedStationFavorite,
+                settings = viewState.settings,
                 actionHandler = viewModel::handleAction,
             )
         }
@@ -157,6 +165,7 @@ fun MapScreen(
             FavoritesPanel(
                 favorites = viewState.favorites,
                 alertPreferences = viewState.tideAlerts,
+                homeStationId = viewState.settings.homeStationId,
                 onFavoriteClick = {
                     viewModel.handleAction(OpenFavorite(it))
                 },
@@ -179,8 +188,36 @@ fun MapScreen(
                         ),
                     )
                 },
+                onHomeSelected = {
+                    viewModel.handleAction(SetHomeStation(it))
+                },
                 onClose = {
                     viewModel.handleAction(CloseFavorites)
+                },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+
+        if (viewState.showSettings) {
+            SettingsPanel(
+                settings = viewState.settings,
+                homeStation = viewState.favorites.firstOrNull {
+                    it.id == viewState.settings.homeStationId
+                },
+                onTideUnitSelected = {
+                    viewModel.handleAction(SetTideUnit(it))
+                },
+                onTempUnitSelected = {
+                    viewModel.handleAction(SetTempUnit(it))
+                },
+                onTimeFormatSelected = {
+                    viewModel.handleAction(SetTimeFormat(it))
+                },
+                onClearHomeStation = {
+                    viewModel.handleAction(ClearHomeStation)
+                },
+                onClose = {
+                    viewModel.handleAction(CloseSettings)
                 },
                 modifier = Modifier.align(Alignment.BottomCenter),
             )

@@ -34,6 +34,10 @@ import androidx.compose.ui.unit.sp
 import com.jjswigut.eventide.data.models.Tide
 import com.jjswigut.eventide.data.models.TideDay
 import com.jjswigut.eventide.data.models.Weather
+import com.jjswigut.eventide.settings.AppSettings
+import com.jjswigut.eventide.settings.displayHeight
+import com.jjswigut.eventide.settings.displayTemperature
+import com.jjswigut.eventide.settings.displayTime
 import com.jjswigut.eventide.ui.components.BodyText
 import com.jjswigut.eventide.ui.components.DateHeaderText
 import com.jjswigut.eventide.ui.components.EnhancedBodyText
@@ -99,7 +103,10 @@ private object TemperatureColors {
 }
 
 @Composable
-fun TideCard(day: TideDay) {
+fun TideCard(
+    day: TideDay,
+    settings: AppSettings,
+) {
     val boxWidth = LocalConfiguration.current.screenWidthDp - 48
 
     @Suppress("UnusedBoxWithConstraintsScope")
@@ -136,6 +143,7 @@ fun TideCard(day: TideDay) {
                 modifier = Modifier.weight(0.5f),
                 day = day,
                 adaptiveSize = adaptiveSize,
+                settings = settings,
             )
 
             Spacer(Modifier.height(adaptiveSize.sectionSpacing))
@@ -144,6 +152,7 @@ fun TideCard(day: TideDay) {
                 modifier = Modifier.weight(0.5f),
                 day = day,
                 adaptiveSize = adaptiveSize,
+                settings = settings,
             )
         }
     }
@@ -178,6 +187,7 @@ private fun TidesSection(
     modifier: Modifier = Modifier,
     day: TideDay,
     adaptiveSize: AdaptiveSize,
+    settings: AppSettings,
 ) {
     Column(
         modifier = modifier
@@ -226,10 +236,11 @@ private fun TidesSection(
                         .fillMaxWidth()
                         .weight(1f),
                     tides = day.tides,
+                    settings = settings,
                 )
 
                 day.tides.forEach { tide ->
-                    TideRow(tide = tide, adaptiveSize = adaptiveSize)
+                    TideRow(tide = tide, adaptiveSize = adaptiveSize, settings = settings)
                 }
             }
         }
@@ -241,6 +252,7 @@ private fun WeatherSection(
     modifier: Modifier = Modifier,
     day: TideDay,
     adaptiveSize: AdaptiveSize,
+    settings: AppSettings,
 ) {
     Column(
         modifier = modifier
@@ -276,7 +288,7 @@ private fun WeatherSection(
                 }
 
                 day.weather != null -> {
-                    WeatherContent(weather = day.weather, adaptiveSize = adaptiveSize)
+                    WeatherContent(weather = day.weather, adaptiveSize = adaptiveSize, settings = settings)
                 }
 
                 else -> {
@@ -294,6 +306,7 @@ private fun WeatherSection(
 private fun TideRow(
     tide: Tide,
     adaptiveSize: AdaptiveSize,
+    settings: AppSettings,
 ) {
     Row(
         modifier = Modifier
@@ -316,13 +329,13 @@ private fun TideRow(
 
         EnhancedBodyText(
             modifier = Modifier.weight(1f),
-            text = tide.time,
+            text = tide.displayTime(settings),
             textAlign = TextAlign.Start,
             fontWeight = FontWeight.Medium,
         )
 
         EnhancedBodyText(
-            text = tide.height,
+            text = tide.displayHeight(settings),
             textAlign = TextAlign.End,
             fontWeight = FontWeight.Bold,
         )
@@ -333,6 +346,7 @@ private fun TideRow(
 private fun WeatherContent(
     weather: Weather,
     adaptiveSize: AdaptiveSize,
+    settings: AppSettings,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -358,7 +372,7 @@ private fun WeatherContent(
         ) {
             TemperatureBox(
                 label = "LOW",
-                temperature = weather.lowTemp,
+                temperature = weather.lowTemp.displayTemperature(settings),
                 arrow = "↓",
                 backgroundColor = TemperatureColors.lowBackground,
                 textColor = TemperatureColors.lowText,
@@ -367,7 +381,7 @@ private fun WeatherContent(
 
             TemperatureBox(
                 label = "HIGH",
-                temperature = weather.highTemp,
+                temperature = weather.highTemp.displayTemperature(settings),
                 arrow = "↑",
                 backgroundColor = TemperatureColors.highBackground,
                 textColor = TemperatureColors.highText,
@@ -382,7 +396,7 @@ private fun WeatherContent(
 @Composable
 private fun TemperatureBox(
     label: String,
-    temperature: Int,
+    temperature: String,
     arrow: String,
     backgroundColor: Color,
     textColor: Color,
@@ -421,7 +435,7 @@ private fun TemperatureBox(
         }
 
         Text(
-            text = "$temperature°",
+            text = temperature,
             fontSize = adaptiveSize.temperatureFontSize,
             fontWeight = FontWeight.Black,
             color = textColor,

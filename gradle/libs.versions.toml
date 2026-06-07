@@ -33,6 +33,7 @@ coroutines = "1.9.0"
 mapsCompose = "6.2.1"
 location = "21.3.0"
 workManager = "2.11.2"
+dataStore = "1.2.1"
 
 [libraries]
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
@@ -46,6 +47,7 @@ androidx-core = { group = "androidx.core", name = "core-ktx", version.ref = "and
 androidx-lifecycleViewmodel = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
 androidx-lifecycleRuntime = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 androidx-lifecycleComposeRuntime = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
+androidx-datastorePreferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "dataStore" }
 
 google-composeMaterial3 = { group = "androidx.compose.material3", name = "material3", version.ref = "composeMaterial3" }
 google-accompanistSystemUiController = { group = "com.google.accompanist", name = "accompanist-systemuicontroller", version.ref = "accompanist" }
@@ -120,6 +122,9 @@ composeMap = [
 ]
 workManager = [
     "work-runtime-ktx",
+]
+dataStore = [
+    "androidx-datastorePreferences",
 ]
 ktorNetworking = [
     "ktor-client-core",

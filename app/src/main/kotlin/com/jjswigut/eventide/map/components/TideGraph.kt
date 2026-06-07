@@ -14,6 +14,9 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.dp
 import com.jjswigut.eventide.data.models.Tide
 import com.jjswigut.eventide.data.models.TideValue
+import com.jjswigut.eventide.settings.AppSettings
+import com.jjswigut.eventide.settings.displayHeight
+import com.jjswigut.eventide.settings.displayTime
 import com.jjswigut.eventide.ui.theme.BackgroundDark
 import com.jjswigut.eventide.ui.theme.Primary
 import com.jjswigut.eventide.ui.theme.PrimaryDark
@@ -28,9 +31,10 @@ import kotlin.math.max
 @Composable
 fun TideGraph(
     tides: List<Tide>,
+    settings: AppSettings,
     modifier: Modifier = Modifier,
 ) {
-    val points = remember(tides) {
+    val points = remember(tides, settings) {
         tides.mapNotNull { tide ->
             val dateTime = tide.dateTime
             val heightFeet = tide.heightFeet
@@ -41,8 +45,8 @@ fun TideGraph(
                     dateTime = dateTime,
                     heightFeet = heightFeet,
                     tideValue = tide.tideValue,
-                    timeLabel = tide.time,
-                    heightLabel = tide.height,
+                    timeLabel = tide.displayTime(settings),
+                    heightLabel = tide.displayHeight(settings),
                 )
             }
         }.sortedBy { it.dateTime }

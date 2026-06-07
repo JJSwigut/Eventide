@@ -27,6 +27,7 @@ import com.jjswigut.eventide.R
 import com.jjswigut.eventide.data.models.Station
 import com.jjswigut.eventide.data.models.TideDay
 import com.jjswigut.eventide.map.MapAction
+import com.jjswigut.eventide.settings.AppSettings
 import com.jjswigut.eventide.ui.components.Action
 import com.jjswigut.eventide.ui.theme.Primary
 import com.jjswigut.eventide.ui.theme.PrimaryDark
@@ -49,6 +50,7 @@ fun StationInfoRow(
     list: List<TideDay>,
     station: Station?,
     isFavorite: Boolean,
+    settings: AppSettings,
     actionHandler: (Action) -> Unit,
 ) {
     Column(modifier = modifier) {
@@ -66,7 +68,7 @@ fun StationInfoRow(
             )
         }
 
-        TideCardList(list = list)
+        TideCardList(list = list, settings = settings)
     }
 }
 
@@ -139,7 +141,10 @@ private fun HeaderButton(
 }
 
 @Composable
-private fun TideCardList(list: List<TideDay>) {
+private fun TideCardList(
+    list: List<TideDay>,
+    settings: AppSettings,
+) {
     LazyRow(
         contentPadding = PaddingValues(
             start = StationInfoDesign.cardPadding,
@@ -148,7 +153,7 @@ private fun TideCardList(list: List<TideDay>) {
         horizontalArrangement = Arrangement.spacedBy(StationInfoDesign.cardSpacing),
     ) {
         items(list) { day ->
-            TideCard(day = day)
+            TideCard(day = day, settings = settings)
         }
     }
 }

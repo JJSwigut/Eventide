@@ -13,6 +13,9 @@ import com.jjswigut.eventide.network.utils.Either
 import com.jjswigut.eventide.repository.FavoritesRepository
 import com.jjswigut.eventide.repository.NoaaRepository
 import com.jjswigut.eventide.repository.TideAlertRepository
+import com.jjswigut.eventide.settings.SettingsRepository
+import com.jjswigut.eventide.settings.displayHeight
+import com.jjswigut.eventide.settings.displayTime
 import kotlinx.coroutines.flow.first
 import org.koin.core.context.GlobalContext
 import java.time.Duration
@@ -31,6 +34,7 @@ class TideAlertScheduleWorker(
         val alertRepository = koin.get<TideAlertRepository>()
         val noaaRepository = koin.get<NoaaRepository>()
         val favoritesRepository = koin.get<FavoritesRepository>()
+        val settingsRepository = koin.get<SettingsRepository>()
         val scheduler = koin.get<TideAlertScheduler>()
 
         val alert = alertRepository.getAlertPreference(stationId)
@@ -67,6 +71,7 @@ class TideAlertScheduleWorker(
             .firstOrNull { it.id == stationId }
             ?.name
             ?: stationId
+        val settings = settingsRepository.settings.first()
         val notificationAt = event.dateTime.minusMinutes(alert.leadTimeMinutes.toLong())
         val delayMillis = Duration.between(now, notificationAt).toMillis().coerceAtLeast(0L)
 
@@ -74,8 +79,8 @@ class TideAlertScheduleWorker(
             stationId = stationId,
             stationName = stationName,
             tideType = event.tideValue.name,
-            tideTime = event.displayTime,
-            tideHeight = event.height,
+            tideTime = event.tide.displayTime(settings),
+            tideHeight = event.tide.displayHeight(settings),
             leadTimeMinutes = alert.leadTimeMinutes,
             eventTimeMillis = event.dateTime.toEpochMillis(),
             delayMillis = delayMillis,
@@ -93,9 +98,8 @@ class TideAlertScheduleWorker(
     private fun Tide.toAlertEvent(): TideAlertEvent? {
         return TideAlertEvent(
             dateTime = dateTime ?: return null,
-            displayTime = time,
             tideValue = tideValue,
-            height = height,
+            tide = this,
         )
     }
 
@@ -117,9 +121,8 @@ class TideAlertScheduleWorker(
 
     private data class TideAlertEvent(
         val dateTime: LocalDateTime,
-        val displayTime: String,
         val tideValue: TideValue,
-        val height: String,
+        val tide: Tide,
     )
 
     companion object {

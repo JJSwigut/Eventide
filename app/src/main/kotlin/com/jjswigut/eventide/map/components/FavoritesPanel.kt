@@ -52,10 +52,12 @@ private object FavoritesPanelDesign {
 fun FavoritesPanel(
     favorites: List<Station>,
     alertPreferences: List<TideAlertPreference>,
+    homeStationId: String?,
     onFavoriteClick: (String) -> Unit,
     onAlertToggle: (String) -> Unit,
     onLeadTimeSelected: (String, Int) -> Unit,
     onFilterSelected: (String, TideAlertFilter) -> Unit,
+    onHomeSelected: (String) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -119,10 +121,12 @@ fun FavoritesPanel(
                     FavoriteStationRow(
                         station = station,
                         alertPreference = alertPreference,
+                        isHomeStation = homeStationId == station.id,
                         onClick = { onFavoriteClick(station.id) },
                         onAlertToggle = { onAlertToggle(station.id) },
                         onLeadTimeSelected = { onLeadTimeSelected(station.id, it) },
                         onFilterSelected = { onFilterSelected(station.id, it) },
+                        onHomeSelected = { onHomeSelected(station.id) },
                     )
                 }
             }
@@ -134,10 +138,12 @@ fun FavoritesPanel(
 private fun FavoriteStationRow(
     station: Station,
     alertPreference: TideAlertPreference?,
+    isHomeStation: Boolean,
     onClick: () -> Unit,
     onAlertToggle: () -> Unit,
     onLeadTimeSelected: (Int) -> Unit,
     onFilterSelected: (TideAlertFilter) -> Unit,
+    onHomeSelected: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -194,6 +200,12 @@ private fun FavoriteStationRow(
                 onFilterSelected = onFilterSelected,
             )
         }
+
+        SelectableChip(
+            text = if (isHomeStation) "Home station" else "Set home",
+            selected = isHomeStation,
+            onClick = onHomeSelected,
+        )
     }
 }
 
