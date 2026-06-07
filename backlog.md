@@ -5,26 +5,6 @@ When a task is finished, delete it from this backlog.
 
 # Eventide Backlog
 
-## 3. Tide curve graph
-
-**Goal:** Replace the discrete high/low list with a smooth tide curve and a "you are here" marker for the current water level.
-
-**Why:** Biggest visual upgrade; it's what every competing tide app leads with. Currently `TideCard` only lists discrete extreme points.
-
-**Implementation notes:**
-- Interpolate between consecutive high/low extremes using a cosine segment: between an extreme at `t0` (height `h0`) and the next at `t1` (height `h1`), `h(t) = h0 + (h1 - h0) * (1 - cos(pi * (t - t0)/(t1 - t0))) / 2`. This approximates real tide shape well enough for display.
-- Draw with Compose `Canvas` in a new `map/components/TideGraph.kt`: axis labels (time across, height up), the curve path, dots at extremes with time + height labels, and a vertical "now" line with a dot at the interpolated current height (only on today's card).
-- Parse `Tide.time` / `Tide.height` into numeric values for plotting (may need a richer model than the current `String` fields — consider adding parsed `LocalDateTime` and `Double` height to `Tide`, or a derived plotting model).
-- Make it adaptive like the existing `AdaptiveSize` scaling in `TideCard`.
-- Keep the textual high/low list available (small, below the graph) for accessibility.
-
-**Acceptance:**
-- Each day card shows a continuous tide curve with labeled high/low points.
-- Today's card shows a live "now" marker at the correct interpolated height.
-- Graph scales cleanly across phone sizes.
-
----
-
 ## 6. Units & settings
 
 **Goal:** Give `SettingsRepository` real responsibilities and a settings screen.

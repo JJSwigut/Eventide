@@ -133,7 +133,7 @@ fun TideCard(day: TideDay) {
             Spacer(Modifier.height(adaptiveSize.sectionSpacing))
 
             TidesSection(
-                modifier = Modifier.weight(0.4f),
+                modifier = Modifier.weight(0.5f),
                 day = day,
                 adaptiveSize = adaptiveSize,
             )
@@ -141,7 +141,7 @@ fun TideCard(day: TideDay) {
             Spacer(Modifier.height(adaptiveSize.sectionSpacing))
 
             WeatherSection(
-                modifier = Modifier.weight(0.6f),
+                modifier = Modifier.weight(0.5f),
                 day = day,
                 adaptiveSize = adaptiveSize,
             )
@@ -219,8 +219,15 @@ private fun TidesSection(
                         vertical = adaptiveSize.tideRowPadding,
                         horizontal = 8.dp,
                     ),
-                verticalArrangement = Arrangement.SpaceEvenly,
+                verticalArrangement = Arrangement.spacedBy(adaptiveSize.weatherSpacing),
             ) {
+                TideGraph(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    tides = day.tides,
+                )
+
                 day.tides.forEach { tide ->
                     TideRow(tide = tide, adaptiveSize = adaptiveSize)
                 }

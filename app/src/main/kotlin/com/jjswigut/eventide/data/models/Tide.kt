@@ -2,11 +2,14 @@ package com.jjswigut.eventide.data.models
 
 import androidx.annotation.DrawableRes
 import com.jjswigut.eventide.R
+import java.time.LocalDateTime
 
 data class Tide(
     val time: String,
     val tideValue: TideValue,
     val height: String,
+    val dateTime: LocalDateTime? = null,
+    val heightFeet: Double? = null,
 )
 
 data class TideDay(

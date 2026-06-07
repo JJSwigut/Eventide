@@ -17,13 +17,8 @@ import kotlinx.coroutines.flow.first
 import org.koin.core.context.GlobalContext
 import java.time.Duration
 import java.time.Instant
-import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeFormatterBuilder
-import java.util.Locale
 
 class TideAlertScheduleWorker(
     appContext: Context,
@@ -91,18 +86,13 @@ class TideAlertScheduleWorker(
 
     private fun List<TideDay>.toTideAlertEvents(): List<TideAlertEvent> {
         return flatMap { tideDay ->
-            val date = LocalDate.parse(tideDay.date, dayFormatter)
-            tideDay.tides.mapNotNull { tide -> tide.toAlertEvent(date) }
+            tideDay.tides.mapNotNull { tide -> tide.toAlertEvent() }
         }.sortedBy { it.dateTime }
     }
 
-    private fun Tide.toAlertEvent(date: LocalDate): TideAlertEvent? {
-        val localTime = runCatching {
-            LocalTime.parse(time.uppercase(Locale.US), timeFormatter)
-        }.getOrNull() ?: return null
-
+    private fun Tide.toAlertEvent(): TideAlertEvent? {
         return TideAlertEvent(
-            dateTime = LocalDateTime.of(date, localTime),
+            dateTime = dateTime ?: return null,
             displayTime = time,
             tideValue = tideValue,
             height = height,
@@ -134,10 +124,5 @@ class TideAlertScheduleWorker(
 
     companion object {
         private const val SIX_HOURS_MILLIS = 6 * 60 * 60 * 1000L
-        private val dayFormatter = DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy")
-        private val timeFormatter = DateTimeFormatterBuilder()
-            .parseCaseInsensitive()
-            .appendPattern("h:mma")
-            .toFormatter(Locale.US)
     }
 }
