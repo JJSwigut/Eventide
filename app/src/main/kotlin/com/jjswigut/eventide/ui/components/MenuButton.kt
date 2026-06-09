@@ -2,7 +2,6 @@ package com.jjswigut.eventide.ui.components
 
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,12 +20,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.jjswigut.eventide.R
-import com.jjswigut.eventide.ui.theme.AppColor
+import com.jjswigut.eventide.ui.theme.LightText
+import com.jjswigut.eventide.ui.theme.PrimaryDark
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -52,20 +51,21 @@ fun MenuButton(
             .animateContentSize()
             .padding(16.dp)
             .size(containerSize),
-        contentAlignment = Alignment.BottomStart,
+        contentAlignment = Alignment.BottomEnd,
     ) {
         Box(
             modifier = Modifier
                 .size(mainButtonSize)
-                .background(shape = CircleShape, color = AppColor.container)
+                .background(shape = CircleShape, color = PrimaryDark)
                 .clip(CircleShape)
                 .shadow(10.dp, CircleShape)
                 .clickable { actionHandler(centerButton.action) },
             contentAlignment = Alignment.Center,
         ) {
-            Image(
+            Icon(
                 painter = painterResource(if (isExpanded) R.drawable.close_icon else centerButton.iconRes),
                 contentDescription = null,
+                tint = LightText,
             )
         }
 
@@ -95,7 +95,7 @@ private fun menuButtonAngle(
     index: Int,
     angleOffset: Float,
 ): Double {
-    return Math.toRadians((-90f + (angleOffset * index)).toDouble())
+    return Math.toRadians((-90f - (angleOffset * index)).toDouble())
 }
 
 private operator fun Double.times(dp: Dp): Dp = (this * dp.value).dp
@@ -109,7 +109,7 @@ private fun OutsideButton(
     Column(
         modifier = modifier
             .size(40.dp)
-            .background(shape = CircleShape, color = AppColor.container)
+            .background(shape = CircleShape, color = PrimaryDark)
             .clip(CircleShape)
             .shadow(8.dp, CircleShape)
             .clickable {
@@ -121,7 +121,7 @@ private fun OutsideButton(
         Icon(
             painter = painterResource(id = menuButton.iconRes),
             contentDescription = null,
-            tint = Color.Unspecified,
+            tint = LightText,
         )
     }
 }

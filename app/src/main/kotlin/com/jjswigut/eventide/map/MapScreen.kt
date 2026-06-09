@@ -157,7 +157,7 @@ fun MapScreen(
             menuButtons = viewState.menuState.outsideButtons,
             actionHandler = viewModel::handleAction,
             modifier = Modifier
-                .align(Alignment.BottomStart)
+                .align(Alignment.BottomEnd)
                 .padding(bottom = 24.dp),
         )
 
