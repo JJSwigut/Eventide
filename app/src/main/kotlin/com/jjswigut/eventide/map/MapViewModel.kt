@@ -11,9 +11,16 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.CameraPositionState
 import com.jjswigut.eventide.R
+import com.jjswigut.eventide.alerts.TideAlertScheduler
+import com.jjswigut.eventide.data.models.Station
+import com.jjswigut.eventide.data.models.TideAlertFilter
+import com.jjswigut.eventide.data.models.TideAlertPreference
 import com.jjswigut.eventide.data.models.TideDay
 import com.jjswigut.eventide.dispatchers.Dispatcher
+import com.jjswigut.eventide.map.MapAction.ClearHomeStation
 import com.jjswigut.eventide.map.MapAction.CloseClicked
+import com.jjswigut.eventide.map.MapAction.CloseFavorites
+import com.jjswigut.eventide.map.MapAction.CloseSettings
 import com.jjswigut.eventide.map.MapAction.CloseTides
 import com.jjswigut.eventide.map.MapAction.GetTidesForStation
 import com.jjswigut.eventide.map.MapAction.GetUserLocation
@@ -22,9 +29,27 @@ import com.jjswigut.eventide.map.MapAction.Initialize
 import com.jjswigut.eventide.map.MapAction.MapLoaded
 import com.jjswigut.eventide.map.MapAction.MenuClicked
 import com.jjswigut.eventide.map.MapAction.NavigateToNearestStation
+import com.jjswigut.eventide.map.MapAction.OpenFavorite
+import com.jjswigut.eventide.map.MapAction.OpenFavorites
+import com.jjswigut.eventide.map.MapAction.OpenSettings
+import com.jjswigut.eventide.map.MapAction.SetHomeStation
+import com.jjswigut.eventide.map.MapAction.SetTempUnit
+import com.jjswigut.eventide.map.MapAction.SetTideAlertFilter
+import com.jjswigut.eventide.map.MapAction.SetTideAlertLeadTime
+import com.jjswigut.eventide.map.MapAction.SetTideUnit
+import com.jjswigut.eventide.map.MapAction.SetTimeFormat
+import com.jjswigut.eventide.map.MapAction.ToggleFavorite
+import com.jjswigut.eventide.map.MapAction.ToggleTideAlert
 import com.jjswigut.eventide.map.models.StationClusterItem
 import com.jjswigut.eventide.network.utils.process
+import com.jjswigut.eventide.repository.FavoritesRepository
 import com.jjswigut.eventide.repository.NoaaRepository
+import com.jjswigut.eventide.repository.TideAlertRepository
+import com.jjswigut.eventide.settings.AppSettings
+import com.jjswigut.eventide.settings.SettingsRepository
+import com.jjswigut.eventide.settings.TempUnit
+import com.jjswigut.eventide.settings.TideUnit
+import com.jjswigut.eventide.settings.TimeFormat
 import com.jjswigut.eventide.ui.components.Action
 import com.jjswigut.eventide.ui.components.MenuItem
 import kotlinx.collections.immutable.ImmutableList
@@ -37,6 +62,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlin.math.atan2
@@ -46,19 +73,14 @@ import kotlin.math.sqrt
 
 private val listOfButtons = persistentListOf(
     MenuItem(
-        text = "",
-        iconRes = R.drawable.arrow_up,
-        action = CloseClicked,
+        text = "Settings",
+        iconRes = R.drawable.settings_icon,
+        action = OpenSettings,
     ),
     MenuItem(
-        text = "",
-        iconRes = R.drawable.arrow_up,
-        action = CloseClicked,
-    ),
-    MenuItem(
-        text = "",
-        iconRes = R.drawable.arrow_up,
-        action = CloseClicked,
+        text = "Favorites",
+        iconRes = R.drawable.star_filled,
+        action = OpenFavorites,
     ),
 )
 
@@ -70,11 +92,18 @@ private val mainButton = MenuItem(
 
 class MapViewModel(
     private val noaaRepository: NoaaRepository,
+    private val favoritesRepository: FavoritesRepository,
+    private val tideAlertRepository: TideAlertRepository,
+    private val tideAlertScheduler: TideAlertScheduler,
+    private val settingsRepository: SettingsRepository,
     private val dispatcher: Dispatcher,
     private val locationClient: FusedLocationProviderClient,
 ) : ViewModel() {
 
     private var getStationsJob: Job? = null
+    private var favoritesJob: Job? = null
+    private var tideAlertsJob: Job? = null
+    private var settingsJob: Job? = null
     private var allStations: List<StationClusterItem> = emptyList()
     private var isInitialLoad = true
     private var lastBounds: LatLngBounds? = null
@@ -96,6 +125,9 @@ class MapViewModel(
         viewModelScope.launch(dispatcher.io) {
             when (action) {
                 is Initialize -> {
+                    observeFavorites()
+                    observeTideAlerts()
+                    observeSettings()
                     initialize(action.hasLocationPermission)
                 }
                 is MapLoaded -> {
@@ -114,12 +146,123 @@ class MapViewModel(
                     updateViewState {
                         copy(
                             listOfTideDays = null,
+                            selectedStation = null,
+                            isSelectedStationFavorite = false,
                             showEmptyState = stations.isEmpty() && isMapLoaded,
                         )
                     }
                 }
                 is NavigateToNearestStation -> {
                     navigateToNearestStation()
+                }
+                is ToggleFavorite -> {
+                    toggleFavorite()
+                }
+                is ToggleTideAlert -> {
+                    toggleTideAlert(action.stationId)
+                }
+                is SetTideAlertLeadTime -> {
+                    setTideAlertLeadTime(action.stationId, action.leadTimeMinutes)
+                }
+                is SetTideAlertFilter -> {
+                    setTideAlertFilter(action.stationId, action.tideAlertFilter)
+                }
+                is SetTideUnit -> {
+                    settingsRepository.setTideUnit(action.tideUnit)
+                }
+                is SetTempUnit -> {
+                    settingsRepository.setTempUnit(action.tempUnit)
+                }
+                is SetTimeFormat -> {
+                    settingsRepository.setTimeFormat(action.timeFormat)
+                }
+                is SetHomeStation -> {
+                    settingsRepository.setHomeStationId(action.stationId)
+                }
+                is ClearHomeStation -> {
+                    settingsRepository.setHomeStationId(null)
+                }
+                is OpenFavorites -> {
+                    updateViewState {
+                        copy(
+                            showFavorites = true,
+                            showSettings = false,
+                            menuState = menuState.copy(expanded = false),
+                        )
+                    }
+                }
+                is OpenSettings -> {
+                    updateViewState {
+                        copy(
+                            showSettings = true,
+                            showFavorites = false,
+                            menuState = menuState.copy(expanded = false),
+                        )
+                    }
+                }
+                is CloseFavorites -> {
+                    updateViewState {
+                        copy(showFavorites = false)
+                    }
+                }
+                is CloseSettings -> {
+                    updateViewState {
+                        copy(showSettings = false)
+                    }
+                }
+                is OpenFavorite -> {
+                    openFavorite(action.stationId)
+                }
+                is MenuClicked -> {
+                    updateViewState {
+                        copy(menuState = menuState.copy(expanded = !menuState.expanded))
+                    }
+                }
+                is CloseClicked -> {
+                    updateViewState {
+                        copy(menuState = menuState.copy(expanded = false))
+                    }
+                }
+            }
+        }
+    }
+
+    private fun observeFavorites() {
+        if (favoritesJob != null) return
+
+        favoritesJob = viewModelScope.launch(dispatcher.io) {
+            favoritesRepository.getFavorites().collectLatest { favorites ->
+                updateViewState {
+                    copy(
+                        favorites = favorites.toImmutableList(),
+                        isSelectedStationFavorite = selectedStation?.let { station ->
+                            favorites.any { it.id == station.id }
+                        } ?: false,
+                    )
+                }
+            }
+        }
+    }
+
+    private fun observeTideAlerts() {
+        if (tideAlertsJob != null) return
+
+        tideAlertsJob = viewModelScope.launch(dispatcher.io) {
+            tideAlertRepository.getAlertPreferences().collectLatest { alerts ->
+                updateViewState {
+                    copy(tideAlerts = alerts.toImmutableList())
+                }
+            }
+        }
+    }
+
+    private fun observeSettings() {
+        if (settingsJob != null) return
+
+        settingsJob = viewModelScope.launch(dispatcher.io) {
+            settingsRepository.settings.collectLatest { settings ->
+                updateViewState {
+                    copy(settings = settings)
                 }
             }
         }
@@ -178,6 +321,8 @@ class MapViewModel(
     }
 
     private suspend fun getTidesForStation(stationId: String) {
+        val station = getStationForId(stationId)
+
         // Show 7 placeholder cards immediately with loading state
         val placeholderCards = (1..7).map { dayIndex ->
             TideDay(
@@ -192,7 +337,11 @@ class MapViewModel(
         updateViewState {
             copy(
                 listOfTideDays = placeholderCards.toImmutableList(),
+                selectedStation = station,
+                isSelectedStationFavorite = favorites.any { it.id == stationId },
                 showEmptyState = false,
+                showFavorites = false,
+                showSettings = false,
             )
         }
 
@@ -327,6 +476,82 @@ class MapViewModel(
         }
     }
 
+    private suspend fun toggleFavorite() {
+        val station = viewState.value.selectedStation ?: return
+        val isFavorite = viewState.value.favorites.any { it.id == station.id }
+
+        if (isFavorite) {
+            favoritesRepository.removeFavorite(station.id)
+            tideAlertRepository.deleteAlertPreference(station.id)
+            tideAlertScheduler.cancel(station.id)
+            if (viewState.value.settings.homeStationId == station.id) {
+                settingsRepository.setHomeStationId(null)
+            }
+        } else {
+            favoritesRepository.addFavorite(station)
+        }
+    }
+
+    private suspend fun toggleTideAlert(stationId: String) {
+        val existingAlert = viewState.value.tideAlerts.firstOrNull { it.stationId == stationId }
+        val shouldEnable = existingAlert?.enabled != true
+        val leadTimeMinutes = existingAlert?.leadTimeMinutes ?: DEFAULT_TIDE_ALERT_LEAD_TIME_MINUTES
+        val tideFilter = existingAlert?.tideFilter ?: TideAlertFilter.Both
+
+        tideAlertRepository.upsertAlertPreference(
+            stationId = stationId,
+            leadTimeMinutes = leadTimeMinutes,
+            tideFilter = tideFilter,
+            enabled = shouldEnable,
+        )
+
+        if (shouldEnable) {
+            tideAlertScheduler.schedule(stationId)
+        } else {
+            tideAlertScheduler.cancel(stationId)
+        }
+    }
+
+    private suspend fun setTideAlertLeadTime(stationId: String, leadTimeMinutes: Int) {
+        val existingAlert = viewState.value.tideAlerts.firstOrNull { it.stationId == stationId }
+
+        tideAlertRepository.upsertAlertPreference(
+            stationId = stationId,
+            leadTimeMinutes = leadTimeMinutes,
+            tideFilter = existingAlert?.tideFilter ?: TideAlertFilter.Both,
+            enabled = existingAlert?.enabled ?: true,
+        )
+        tideAlertScheduler.schedule(stationId)
+    }
+
+    private suspend fun setTideAlertFilter(stationId: String, tideAlertFilter: TideAlertFilter) {
+        val existingAlert = viewState.value.tideAlerts.firstOrNull { it.stationId == stationId }
+
+        tideAlertRepository.upsertAlertPreference(
+            stationId = stationId,
+            leadTimeMinutes = existingAlert?.leadTimeMinutes ?: DEFAULT_TIDE_ALERT_LEAD_TIME_MINUTES,
+            tideFilter = tideAlertFilter,
+            enabled = existingAlert?.enabled ?: true,
+        )
+        tideAlertScheduler.schedule(stationId)
+    }
+
+    private suspend fun openFavorite(stationId: String) {
+        val station = viewState.value.favorites.firstOrNull { it.id == stationId } ?: return
+
+        updateViewState {
+            copy(showFavorites = false)
+        }
+        animateCameraPosition(target = station.latLng, zoom = 13f)
+        getTidesForStation(station.id)
+    }
+
+    private fun getStationForId(stationId: String): Station? {
+        return viewState.value.stations.firstOrNull { it.station.id == stationId }?.station
+            ?: allStations.firstOrNull { it.station.id == stationId }?.station
+            ?: viewState.value.favorites.firstOrNull { it.id == stationId }
+    }
+
     @SuppressLint("MissingPermission")
     private suspend fun initialize(hasLocationPermission: Boolean) = coroutineScope {
         val stationsFetch = async(dispatcher.io) { noaaRepository.fetchAndCacheStations() }
@@ -362,6 +587,25 @@ class MapViewModel(
                 allStations = emptyList()
             },
         )
+
+        val launchSettings = settingsRepository.settings.first()
+        updateViewState {
+            copy(settings = launchSettings)
+        }
+
+        launchSettings.homeStationId?.let { homeStationId ->
+            allStations.firstOrNull { it.station.id == homeStationId }?.let { homeStation ->
+                viewModelScope.launch(dispatcher.main) {
+                    cameraState.position = CameraPosition(
+                        homeStation.position,
+                        StartZoomLevel,
+                        0f,
+                        0f,
+                    )
+                }.join()
+                getTidesForStation(homeStation.station.id)
+            }
+        }
 
         updateViewState {
             copy(isLoading = false)
@@ -400,6 +644,13 @@ class MapViewModel(
             isMapLoaded = false,
             showEmptyState = false,
             listOfTideDays = null,
+            selectedStation = null,
+            isSelectedStationFavorite = false,
+            favorites = persistentListOf(),
+            tideAlerts = persistentListOf(),
+            settings = AppSettings(),
+            showFavorites = false,
+            showSettings = false,
             menuState = MenuState(
                 centerButton = mainButton,
                 outsideButtons = listOfButtons,
@@ -415,6 +666,7 @@ class MapViewModel(
     }
 
     companion object {
+        private const val DEFAULT_TIDE_ALERT_LEAD_TIME_MINUTES = 30
         private const val StartZoomLevel = 11f
         private val StartLocation = LatLng(41.32797202698443, -71.98954043241064)
     }
@@ -426,6 +678,13 @@ data class MapViewState(
     val showEmptyState: Boolean,
     val stations: ImmutableList<StationClusterItem>,
     val listOfTideDays: ImmutableList<TideDay>?,
+    val selectedStation: Station?,
+    val isSelectedStationFavorite: Boolean,
+    val favorites: ImmutableList<Station>,
+    val tideAlerts: ImmutableList<TideAlertPreference>,
+    val settings: AppSettings,
+    val showFavorites: Boolean,
+    val showSettings: Boolean,
     val menuState: MenuState,
 )
 
@@ -442,6 +701,20 @@ sealed interface MapAction : Action {
     data object GetUserLocation : MapAction
     data class GetTidesForStation(val stationId: String) : MapAction
     data object NavigateToNearestStation : MapAction
+    data object ToggleFavorite : MapAction
+    data class ToggleTideAlert(val stationId: String) : MapAction
+    data class SetTideAlertLeadTime(val stationId: String, val leadTimeMinutes: Int) : MapAction
+    data class SetTideAlertFilter(val stationId: String, val tideAlertFilter: TideAlertFilter) : MapAction
+    data class SetTideUnit(val tideUnit: TideUnit) : MapAction
+    data class SetTempUnit(val tempUnit: TempUnit) : MapAction
+    data class SetTimeFormat(val timeFormat: TimeFormat) : MapAction
+    data class SetHomeStation(val stationId: String) : MapAction
+    data object ClearHomeStation : MapAction
+    data object OpenFavorites : MapAction
+    data object CloseFavorites : MapAction
+    data class OpenFavorite(val stationId: String) : MapAction
+    data object OpenSettings : MapAction
+    data object CloseSettings : MapAction
 
     data object CloseTides : MapAction
 

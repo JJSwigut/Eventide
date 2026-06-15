@@ -2,6 +2,7 @@ package com.jjswigut.eventide.repository
 
 import com.google.android.gms.maps.model.LatLngBounds
 import com.jjswigut.eventide.StationsDb
+import com.jjswigut.eventide.astronomy.withSunMoonData
 import com.jjswigut.eventide.data.models.Station
 import com.jjswigut.eventide.data.models.TideDay
 import com.jjswigut.eventide.data.models.Weather
@@ -32,8 +33,14 @@ class NoaaRepositoryImpl(
     }
 
     override suspend fun getTidesForStation(stationID: String): Either<List<TideDay>, GenericError> {
+        val station = getStationById(stationID)
         return noaaService.getTidesForStation(stationID).processSuccess { response ->
-            response.toListOfTideDays()
+            val tideDays = response.toListOfTideDays()
+            if (station == null) {
+                tideDays
+            } else {
+                tideDays.withSunMoonData(station.latLng)
+            }
         }
     }
 

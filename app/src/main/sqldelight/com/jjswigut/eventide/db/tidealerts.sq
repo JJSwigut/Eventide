@@ -1,0 +1,37 @@
+CREATE TABLE IF NOT EXISTS TideAlertPreferenceEntity (
+   station_id TEXT PRIMARY KEY,
+   lead_time_minutes INTEGER NOT NULL,
+   tide_filter TEXT NOT NULL,
+   enabled INTEGER NOT NULL,
+   updated_at INTEGER NOT NULL
+);
+
+upsertAlertPreference:
+INSERT OR REPLACE INTO TideAlertPreferenceEntity(
+    station_id,
+    lead_time_minutes,
+    tide_filter,
+    enabled,
+    updated_at
+)
+VALUES (?, ?, ?, ?, ?);
+
+deleteAlertPreference:
+DELETE FROM TideAlertPreferenceEntity
+WHERE station_id = ?;
+
+selectAllAlertPreferences:
+SELECT *
+FROM TideAlertPreferenceEntity
+ORDER BY updated_at DESC;
+
+selectEnabledAlertPreferences:
+SELECT *
+FROM TideAlertPreferenceEntity
+WHERE enabled = 1
+ORDER BY updated_at DESC;
+
+selectAlertPreferenceByStationId:
+SELECT *
+FROM TideAlertPreferenceEntity
+WHERE station_id = ?;

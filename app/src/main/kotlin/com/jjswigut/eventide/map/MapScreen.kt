@@ -2,6 +2,7 @@ package com.jjswigut.eventide.map
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -10,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.maps.CameraUpdate
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -20,13 +22,27 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.MapsComposeExperimentalApi
+import com.jjswigut.eventide.map.MapAction.ClearHomeStation
+import com.jjswigut.eventide.map.MapAction.CloseFavorites
+import com.jjswigut.eventide.map.MapAction.CloseSettings
 import com.jjswigut.eventide.map.MapAction.HandleMapMotion
 import com.jjswigut.eventide.map.MapAction.Initialize
 import com.jjswigut.eventide.map.MapAction.MapLoaded
 import com.jjswigut.eventide.map.MapAction.NavigateToNearestStation
+import com.jjswigut.eventide.map.MapAction.OpenFavorite
+import com.jjswigut.eventide.map.MapAction.SetHomeStation
+import com.jjswigut.eventide.map.MapAction.SetTempUnit
+import com.jjswigut.eventide.map.MapAction.SetTideAlertFilter
+import com.jjswigut.eventide.map.MapAction.SetTideAlertLeadTime
+import com.jjswigut.eventide.map.MapAction.SetTideUnit
+import com.jjswigut.eventide.map.MapAction.SetTimeFormat
+import com.jjswigut.eventide.map.MapAction.ToggleTideAlert
+import com.jjswigut.eventide.map.components.FavoritesPanel
+import com.jjswigut.eventide.map.components.SettingsPanel
 import com.jjswigut.eventide.map.components.StationInfoRow
 import com.jjswigut.eventide.ui.components.ClusterPin
 import com.jjswigut.eventide.ui.components.EmptyStateOverlay
+import com.jjswigut.eventide.ui.components.MenuButton
 import com.jjswigut.eventide.ui.components.SplashScreen
 import com.jjswigut.eventide.ui.components.StationPin
 import kotlinx.coroutines.launch
@@ -128,7 +144,82 @@ fun MapScreen(
             StationInfoRow(
                 modifier = Modifier.align(Alignment.Center),
                 list = tideDays,
+                station = viewState.selectedStation,
+                isFavorite = viewState.isSelectedStationFavorite,
+                settings = viewState.settings,
                 actionHandler = viewModel::handleAction,
+            )
+        }
+
+        MenuButton(
+            expanded = viewState.menuState.expanded,
+            centerButton = viewState.menuState.centerButton,
+            menuButtons = viewState.menuState.outsideButtons,
+            actionHandler = viewModel::handleAction,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 24.dp),
+        )
+
+        if (viewState.showFavorites) {
+            FavoritesPanel(
+                favorites = viewState.favorites,
+                alertPreferences = viewState.tideAlerts,
+                homeStationId = viewState.settings.homeStationId,
+                onFavoriteClick = {
+                    viewModel.handleAction(OpenFavorite(it))
+                },
+                onAlertToggle = {
+                    viewModel.handleAction(ToggleTideAlert(it))
+                },
+                onLeadTimeSelected = { stationId, leadTimeMinutes ->
+                    viewModel.handleAction(
+                        SetTideAlertLeadTime(
+                            stationId = stationId,
+                            leadTimeMinutes = leadTimeMinutes,
+                        ),
+                    )
+                },
+                onFilterSelected = { stationId, tideAlertFilter ->
+                    viewModel.handleAction(
+                        SetTideAlertFilter(
+                            stationId = stationId,
+                            tideAlertFilter = tideAlertFilter,
+                        ),
+                    )
+                },
+                onHomeSelected = {
+                    viewModel.handleAction(SetHomeStation(it))
+                },
+                onClose = {
+                    viewModel.handleAction(CloseFavorites)
+                },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+
+        if (viewState.showSettings) {
+            SettingsPanel(
+                settings = viewState.settings,
+                homeStation = viewState.favorites.firstOrNull {
+                    it.id == viewState.settings.homeStationId
+                },
+                onTideUnitSelected = {
+                    viewModel.handleAction(SetTideUnit(it))
+                },
+                onTempUnitSelected = {
+                    viewModel.handleAction(SetTempUnit(it))
+                },
+                onTimeFormatSelected = {
+                    viewModel.handleAction(SetTimeFormat(it))
+                },
+                onClearHomeStation = {
+                    viewModel.handleAction(ClearHomeStation)
+                },
+                onClose = {
+                    viewModel.handleAction(CloseSettings)
+                },
+                modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
     }

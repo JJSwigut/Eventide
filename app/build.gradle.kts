@@ -32,6 +32,8 @@ dependencies {
     implementation(libs.bundles.koinDI)
     implementation(libs.bundles.ktorNetworking)
     implementation(libs.bundles.sqlDelight)
+    implementation(libs.bundles.workManager)
+    implementation(libs.bundles.dataStore)
 
     // Use OkHttp engine instead of deprecated Android engine
     implementation("io.ktor:ktor-client-okhttp:${libs.versions.ktor.get()}")

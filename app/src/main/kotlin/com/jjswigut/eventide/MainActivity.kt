@@ -1,7 +1,9 @@
 package com.jjswigut.eventide
 
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
+import android.Manifest.permission.POST_NOTIFICATIONS
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -33,6 +35,13 @@ class MainActivity : ComponentActivity() {
             RequestPermission(),
         ) { isGranted: Boolean ->
             hasLocationPermission = isGranted
+            requestNotificationPermission()
+        }
+
+    private val requestNotificationPermissionLauncher =
+        registerForActivityResult(
+            RequestPermission(),
+        ) {
             setupMapScreen()
         }
 
@@ -43,19 +52,44 @@ class MainActivity : ComponentActivity() {
                 ACCESS_COARSE_LOCATION,
             ) == PackageManager.PERMISSION_GRANTED -> {
                 hasLocationPermission = true
-                setupMapScreen()
+                requestNotificationPermission()
             }
             ActivityCompat.shouldShowRequestPermissionRationale(
                 this,
                 ACCESS_COARSE_LOCATION,
             ) -> {
                 hasLocationPermission = false // todo show rationale
-                setupMapScreen()
+                requestNotificationPermission()
             }
             else -> {
                 requestPermissionLauncher.launch(
                     ACCESS_COARSE_LOCATION,
                 )
+            }
+        }
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            setupMapScreen()
+            return
+        }
+
+        when {
+            ContextCompat.checkSelfPermission(
+                this,
+                POST_NOTIFICATIONS,
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                setupMapScreen()
+            }
+            ActivityCompat.shouldShowRequestPermissionRationale(
+                this,
+                POST_NOTIFICATIONS,
+            ) -> {
+                setupMapScreen()
+            }
+            else -> {
+                requestNotificationPermissionLauncher.launch(POST_NOTIFICATIONS)
             }
         }
     }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -23,8 +24,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.jjswigut.eventide.R
+import com.jjswigut.eventide.data.models.Station
 import com.jjswigut.eventide.data.models.TideDay
 import com.jjswigut.eventide.map.MapAction
+import com.jjswigut.eventide.settings.AppSettings
 import com.jjswigut.eventide.ui.components.Action
 import com.jjswigut.eventide.ui.theme.Primary
 import com.jjswigut.eventide.ui.theme.PrimaryDark
@@ -45,21 +48,60 @@ private object StationInfoDesign {
 fun StationInfoRow(
     modifier: Modifier = Modifier,
     list: List<TideDay>,
+    station: Station?,
+    isFavorite: Boolean,
+    settings: AppSettings,
     actionHandler: (Action) -> Unit,
 ) {
     Column(modifier = modifier) {
-        CloseButton(
+        Row(
             modifier = Modifier.align(Alignment.End),
-            onClick = { actionHandler(MapAction.CloseTides) },
-        )
+        ) {
+            station?.let {
+                FavoriteButton(
+                    isFavorite = isFavorite,
+                    onClick = { actionHandler(MapAction.ToggleFavorite) },
+                )
+            }
+            CloseButton(
+                onClick = { actionHandler(MapAction.CloseTides) },
+            )
+        }
 
-        TideCardList(list = list)
+        TideCardList(list = list, settings = settings)
     }
+}
+
+@Composable
+private fun FavoriteButton(
+    isFavorite: Boolean,
+    onClick: () -> Unit,
+) {
+    HeaderButton(
+        iconRes = if (isFavorite) R.drawable.star_filled else R.drawable.star_outline,
+        contentDescription = if (isFavorite) "Remove favorite" else "Save favorite",
+        onClick = onClick,
+    )
 }
 
 @Composable
 private fun CloseButton(
     modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    HeaderButton(
+        modifier = modifier,
+        iconRes = R.drawable.close_icon,
+        contentDescription = "Close",
+        onClick = onClick,
+    )
+}
+
+@Composable
+private fun HeaderButton(
+    modifier: Modifier = Modifier,
+    iconRes: Int,
+    contentDescription: String,
     onClick: () -> Unit,
 ) {
     val gradientBrush = Brush.radialGradient(
@@ -75,7 +117,7 @@ private fun CloseButton(
         modifier = modifier
             .padding(
                 bottom = StationInfoDesign.closeButtonPadding,
-                end = 20.dp,
+                end = StationInfoDesign.closeButtonPadding,
             )
             .size(StationInfoDesign.closeButtonSize)
             .background(
@@ -91,15 +133,18 @@ private fun CloseButton(
             .clickable(onClick = onClick),
     ) {
         Image(
-            painter = painterResource(id = R.drawable.close_icon),
-            contentDescription = "Close",
+            painter = painterResource(id = iconRes),
+            contentDescription = contentDescription,
             modifier = Modifier.size(StationInfoDesign.closeIconSize),
         )
     }
 }
 
 @Composable
-private fun TideCardList(list: List<TideDay>) {
+private fun TideCardList(
+    list: List<TideDay>,
+    settings: AppSettings,
+) {
     LazyRow(
         contentPadding = PaddingValues(
             start = StationInfoDesign.cardPadding,
@@ -108,7 +153,7 @@ private fun TideCardList(list: List<TideDay>) {
         horizontalArrangement = Arrangement.spacedBy(StationInfoDesign.cardSpacing),
     ) {
         items(list) { day ->
-            TideCard(day = day)
+            TideCard(day = day, settings = settings)
         }
     }
 }

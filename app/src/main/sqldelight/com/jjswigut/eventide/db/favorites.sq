@@ -1,0 +1,26 @@
+CREATE TABLE IF NOT EXISTS FavoriteStationEntity (
+   id TEXT PRIMARY KEY,
+   latitude REAL NOT NULL,
+   longitude REAL NOT NULL,
+   name TEXT NOT NULL,
+   state TEXT NOT NULL,
+   created_at INTEGER NOT NULL
+);
+
+insertFavorite:
+INSERT OR REPLACE INTO FavoriteStationEntity(id, latitude, longitude, name, state, created_at)
+VALUES (?, ?, ?, ?, ?, ?);
+
+deleteFavoriteById:
+DELETE FROM FavoriteStationEntity
+WHERE id = ?;
+
+selectAllFavoriteStations:
+SELECT *
+FROM FavoriteStationEntity
+ORDER BY created_at DESC;
+
+selectFavoriteStationById:
+SELECT *
+FROM FavoriteStationEntity
+WHERE id = ?;
