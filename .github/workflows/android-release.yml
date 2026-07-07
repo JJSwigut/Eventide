@@ -65,6 +65,9 @@ jobs:
           echo "keyPassword=$APP_KEY_PASSWORD" >> app/keystore.properties
           echo "Keystore and properties file created."
 
+      - name: Run release checks
+        run: ./gradlew :app:spotlessCheck :app:testReleaseUnitTest :app:lintVitalRelease
+
       - name: Build Signed AAB
         id: build_aab
         run: |
