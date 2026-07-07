@@ -15,7 +15,7 @@ The orchestrator owns state, routing, permissions, release decisions, and worker
 - `develop`: integration branch. Feature workers start from this branch.
 - `swiggy/<slug>`: feature branches created by workers.
 
-Current setup note: local `develop` exists. Remote `origin/develop` still needs to be created after owner approval.
+Current setup note: local `develop` tracks `origin/develop`.
 
 ## Feature Flow
 
@@ -97,6 +97,18 @@ This runs local verification, forced `EventideSmoke` smoke, and release checks:
 Feature PRs target `develop`. Release PRs target `main` from `develop`.
 
 Use `.github/pull_request_template.md` to include the verification commands, smoke target, and screenshot path in every PR.
+
+## Worker Cleanup
+
+The orchestrator should clean up worker threads and worktrees once they are no longer useful:
+
+1. Read the worker's latest thread state before cleanup.
+2. Record the outcome in `/Users/swig/thread-orchestrator/eventide.md`: status, proof, PR URL if any, smoke target, screenshot path, and remaining decision.
+3. Archive completed worker threads.
+4. Remove the worker worktree only when `git status --short --branch` is clean or the useful work is already preserved on a pushed branch/PR.
+5. Keep any dirty, unpushed, or ambiguous worktree visible in the ledger as `needs-owner`.
+
+Cleanup is not allowed to discard live product work. The old overlay worker at `/Users/swig/.codex/worktrees/70d8/Eventide` is dirty and remains live until it is recovered into a focused PR or explicitly discarded.
 
 ## Permission Boundaries
 

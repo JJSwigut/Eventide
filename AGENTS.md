@@ -35,6 +35,18 @@ tools/eventide_release_check.sh
 
 If emulator/device verification cannot be performed honestly, report the blocker with the exact command output instead of claiming completion.
 
+## Worker Cleanup
+
+When a worker is done, the orchestrator should close the loop before creating more work:
+
+1. Read the worker's latest report and record the result, proof, PR URL, and any screenshot path in `/Users/swig/thread-orchestrator/eventide.md`.
+2. Confirm the worker worktree is safe to remove:
+   - Clean, no useful local changes: archive the thread and remove the worktree.
+   - Pushed PR branch with no untracked local-only work: archive the thread and remove the worktree after the PR/proof is recorded.
+   - Dirty, unpushed, or ambiguous work: keep the worktree and mark it `needs-owner` in the ledger.
+3. Do not delete a worktree that contains unrecovered product work, failed verification artifacts needed for debugging, or unrelated user changes.
+4. Never use forced deletion/reset for cleanup unless the owner explicitly approves discarding the specific worktree.
+
 ## Release Setup
 
 To cut a release, the orchestrator should:
