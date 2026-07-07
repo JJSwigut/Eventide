@@ -11,19 +11,26 @@ plugins {
     id("eventide.quality")
 }
 android {
+    val keyStorePropertiesFile = rootProject.file("app/keystore.properties")
+    val hasReleaseSigningConfig = keyStorePropertiesFile.exists()
+
     signingConfigs {
-        val keyStoreProperties = loadProperties("app/keystore.properties")
-        create("release") {
-            storePassword = keyStoreProperties.getProperty("storePassword")
-            keyPassword = keyStoreProperties.getProperty("keyPassword")
-            keyAlias = keyStoreProperties.getProperty("keyAlias")
-            storeFile = file(keyStoreProperties.getProperty("storeFile"))
+        if (hasReleaseSigningConfig) {
+            val keyStoreProperties = loadProperties(keyStorePropertiesFile.absolutePath)
+            create("release") {
+                storePassword = keyStoreProperties.getProperty("storePassword")
+                keyPassword = keyStoreProperties.getProperty("keyPassword")
+                keyAlias = keyStoreProperties.getProperty("keyAlias")
+                storeFile = file(keyStoreProperties.getProperty("storeFile"))
+            }
         }
     }
     namespace = "com.jjswigut.eventide"
     buildTypes {
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
+            if (hasReleaseSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 }
