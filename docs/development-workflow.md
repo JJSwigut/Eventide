@@ -41,7 +41,7 @@ When the owner says "cut a release":
 
 1. Orchestrator confirms release permission and reads the ledger.
 2. Orchestrator verifies no active worker has unmerged release-critical work.
-3. Orchestrator checks that `develop` is up to date and CI/smoke proof exists.
+3. Orchestrator runs `tools/eventide_release_check.sh` from `develop`.
 4. Orchestrator creates a release PR from `develop` into `main`.
 5. PR checks run for `main`.
 6. After explicit owner approval, orchestrator merges the PR.
@@ -75,6 +75,28 @@ The smoke script prefers an already connected Android target. If none is connect
 Set `ANDROID_SERIAL` to force a specific target.
 
 Set `EVENTIDE_FORCE_EMULATOR=1` to force the `EventideSmoke` emulator even when a physical device is connected. Set `EVENTIDE_STOP_EMULATOR=1` to shut down an emulator started by the script after the screenshot is captured.
+
+## Release Check
+
+Run:
+
+```bash
+tools/eventide_release_check.sh
+```
+
+This runs local verification, forced `EventideSmoke` smoke, and release checks:
+
+- `tools/eventide_verify.sh`
+- `EVENTIDE_FORCE_EMULATOR=1 EVENTIDE_STOP_EMULATOR=1 tools/eventide_smoke.sh`
+- `:app:spotlessCheck`
+- `:app:testReleaseUnitTest`
+- `:app:lintVitalRelease`
+
+## Pull Requests
+
+Feature PRs target `develop`. Release PRs target `main` from `develop`.
+
+Use `.github/pull_request_template.md` to include the verification commands, smoke target, and screenshot path in every PR.
 
 ## Permission Boundaries
 

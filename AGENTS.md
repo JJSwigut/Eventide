@@ -27,9 +27,11 @@ Use these commands from the repository root:
 ```bash
 tools/eventide_verify.sh
 tools/eventide_smoke.sh
+tools/eventide_release_check.sh
 ```
 
 `tools/eventide_verify.sh` runs compile, formatting, unit tests, and a debug assemble. `tools/eventide_smoke.sh` builds, installs, launches the app, and captures a screenshot using a connected Android device or the `EventideSmoke` emulator.
+`tools/eventide_release_check.sh` runs the local verification gate, forced emulator smoke, and release checks.
 
 If emulator/device verification cannot be performed honestly, report the blocker with the exact command output instead of claiming completion.
 
@@ -39,7 +41,7 @@ To cut a release, the orchestrator should:
 
 1. Confirm `develop` has the intended changes and required PR checks.
 2. Create a release PR from `develop` into `main`.
-3. Require smoke proof before merge.
+3. Require `tools/eventide_release_check.sh` proof before merge.
 4. Merge to `main` only with explicit owner approval.
 5. Let the `Android CI/CD Release` workflow build, create the GitHub release, and upload to Google Play.
 

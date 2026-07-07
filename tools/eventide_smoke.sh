@@ -5,9 +5,21 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 AVD_NAME="${EVENTIDE_AVD_NAME:-EventideSmoke}"
 FORCE_EMULATOR="${EVENTIDE_FORCE_EMULATOR:-0}"
+SCREENSHOT_TIMEOUT_SECONDS="${EVENTIDE_SCREENSHOT_TIMEOUT_SECONDS:-30}"
 PACKAGE_NAME="com.jjswigut.eventide"
 MAIN_ACTIVITY="com.jjswigut.eventide/.MainActivity"
 SMOKE_DIR="${REPO_ROOT}/build/smoke"
+EMULATOR_STARTED=0
+
+cleanup() {
+  local status=$?
+  if [[ "${EVENTIDE_STOP_EMULATOR:-0}" == "1" && "${EMULATOR_STARTED}" == "1" && -n "${ANDROID_SERIAL:-}" ]]; then
+    adb -s "${ANDROID_SERIAL}" emu kill >/dev/null 2>&1 || true
+  fi
+  exit "${status}"
+}
+
+trap cleanup EXIT
 
 # shellcheck source=tools/eventide_env.sh
 source "${SCRIPT_DIR}/eventide_env.sh"
@@ -51,6 +63,25 @@ wait_for_boot() {
   return 1
 }
 
+capture_screenshot() {
+  local screenshot_pid=""
+  adb -s "${ANDROID_SERIAL}" exec-out screencap -p > "${SCREENSHOT_LOCAL}" &
+  screenshot_pid=$!
+
+  for _ in $(seq 1 "${SCREENSHOT_TIMEOUT_SECONDS}"); do
+    if ! kill -0 "${screenshot_pid}" 2>/dev/null; then
+      wait "${screenshot_pid}"
+      return $?
+    fi
+    sleep 1
+  done
+
+  kill "${screenshot_pid}" >/dev/null 2>&1 || true
+  wait "${screenshot_pid}" >/dev/null 2>&1 || true
+  echo "Timed out capturing screenshot from Android target: ${ANDROID_SERIAL}" >&2
+  return 1
+}
+
 if [[ "${FORCE_EMULATOR}" == "1" ]]; then
   ANDROID_SERIAL="$(connected_emulator || true)"
   export ANDROID_SERIAL
@@ -59,7 +90,6 @@ elif [[ -z "${ANDROID_SERIAL:-}" ]]; then
   export ANDROID_SERIAL
 fi
 
-EMULATOR_STARTED=0
 if [[ -z "${ANDROID_SERIAL:-}" && ( "${FORCE_EMULATOR}" == "1" || -z "$(connected_device || true)" ) ]]; then
   if emulator -list-avds | grep -Fxq "${AVD_NAME}"; then
     nohup emulator -avd "${AVD_NAME}" -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect \
@@ -99,15 +129,13 @@ adb -s "${ANDROID_SERIAL}" shell pm grant "${PACKAGE_NAME}" android.permission.P
 adb -s "${ANDROID_SERIAL}" shell am start -W -n "${MAIN_ACTIVITY}"
 sleep 5
 
-SCREENSHOT_REMOTE="/sdcard/eventide-smoke.png"
 SCREENSHOT_LOCAL="${SMOKE_DIR}/eventide-smoke-$(date +%Y%m%d-%H%M%S).png"
-adb -s "${ANDROID_SERIAL}" shell screencap -p "${SCREENSHOT_REMOTE}"
-adb -s "${ANDROID_SERIAL}" pull "${SCREENSHOT_REMOTE}" "${SCREENSHOT_LOCAL}" >/dev/null
-adb -s "${ANDROID_SERIAL}" shell rm "${SCREENSHOT_REMOTE}" >/dev/null 2>&1 || true
+capture_screenshot
+
+if [[ ! -s "${SCREENSHOT_LOCAL}" ]]; then
+  echo "Screenshot was not created or was empty: ${SCREENSHOT_LOCAL}" >&2
+  exit 1
+fi
 
 echo "Smoke target: ${ANDROID_SERIAL}"
 echo "Screenshot: ${SCREENSHOT_LOCAL}"
-
-if [[ "${EVENTIDE_STOP_EMULATOR:-0}" == "1" && "${EMULATOR_STARTED}" == "1" ]]; then
-  adb -s "${ANDROID_SERIAL}" emu kill >/dev/null 2>&1 || true
-fi
