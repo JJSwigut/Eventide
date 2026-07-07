@@ -31,9 +31,17 @@ When the owner says "add this feature":
    - Whether pushing/opening a PR is authorized.
    - Required proof: `tools/eventide_verify.sh`, `tools/eventide_smoke.sh`, and any feature-specific proof.
    - Stop conditions for product decisions, credentials, public mutation, or verification blockers.
+   - Result semantics: setup-only work such as fetching refs, creating a branch, dependency setup, or repo inspection is a checkpoint, not completion or blockage.
+   - `blocked` must include an exact owner action, permission, credential, external state change, or verification blocker; workers must not report `blocked` with `Decision needed: none`.
 5. Worker implements, verifies, and reports with proof.
 6. If public mutation is authorized, worker pushes `swiggy/<slug>` and opens a PR into `develop`.
 7. Orchestrator records the PR, proof, blockers, and next owner decision in the ledger.
+
+## Worker Monitoring
+
+Worker reports stay inside their worker thread until the orchestrator reads them. The orchestrator should poll active workers before reporting status to the owner, and should use a heartbeat automation when ongoing background monitoring is expected.
+
+If a worker reports `blocked` while also saying no decision/action is needed, the orchestrator should treat that as an invalid setup checkpoint: read the worktree state, record the event in the ledger, and resume the original assignment.
 
 ## Release Flow
 
@@ -123,4 +131,4 @@ Local-only setup and verification can proceed in worker threads when assigned. T
 
 ## Existing Work To Reconcile
 
-The previous `Add overlay menu button` thread (`019ebc2c-db6f-7672-b32d-4a49206e6edf`) has a dirty Codex worktree at `/Users/swig/.codex/worktrees/70d8/Eventide`. Treat it as live work until the owner decides whether to recover, PR, or discard it.
+No known dirty worker worktree currently needs recovery. The previous overlay worker was recovered into `develop` and archived.
