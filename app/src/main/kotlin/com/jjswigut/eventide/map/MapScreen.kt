@@ -40,6 +40,7 @@ import com.jjswigut.eventide.map.MapAction.SetTideAlertLeadTime
 import com.jjswigut.eventide.map.MapAction.SetTideUnit
 import com.jjswigut.eventide.map.MapAction.SetTimeFormat
 import com.jjswigut.eventide.map.MapAction.ToggleRadarOverlay
+import com.jjswigut.eventide.map.MapAction.ToggleSatelliteOverlay
 import com.jjswigut.eventide.map.MapAction.ToggleTideAlert
 import com.jjswigut.eventide.map.MapAction.ToggleWeatherOverlay
 import com.jjswigut.eventide.map.components.FavoritesPanel
@@ -72,6 +73,12 @@ fun MapScreen(
         WmsTileProvider(
             baseUrl = "https://mapservices.weather.noaa.gov/geoserver/ndfd/sky/ows",
             layers = "sky",
+        )
+    }
+    val satelliteTileProvider = remember {
+        WmsTileProvider(
+            baseUrl = "https://nowcoast.noaa.gov/geoserver/observations/satellite/ows",
+            layers = "goes_longwave_imagery",
         )
     }
 
@@ -150,6 +157,14 @@ fun MapScreen(
                 )
             }
 
+            if (viewState.isSatelliteOverlayEnabled) {
+                TileOverlay(
+                    tileProvider = satelliteTileProvider,
+                    transparency = SATELLITE_OVERLAY_TRANSPARENCY,
+                    zIndex = SATELLITE_OVERLAY_Z_INDEX,
+                )
+            }
+
             EventideClustering(
                 items = viewState.stations,
                 onClusterClick = onClusterClick,
@@ -178,6 +193,8 @@ fun MapScreen(
             StationInfoRow(
                 modifier = Modifier.align(Alignment.Center),
                 list = tideDays,
+                marineConditions = viewState.marineConditions,
+                isMarineConditionsLoading = viewState.isMarineConditionsLoading,
                 station = viewState.selectedStation,
                 isFavorite = viewState.isSelectedStationFavorite,
                 settings = viewState.settings,
@@ -192,6 +209,7 @@ fun MapScreen(
             selectedActions = buildSet {
                 if (viewState.isRadarOverlayEnabled) add(ToggleRadarOverlay)
                 if (viewState.isWeatherOverlayEnabled) add(ToggleWeatherOverlay)
+                if (viewState.isSatelliteOverlayEnabled) add(ToggleSatelliteOverlay)
             },
             actionHandler = { action ->
                 when (action) {
@@ -208,6 +226,14 @@ fun MapScreen(
                             "Weather has been disabled"
                         } else {
                             "Weather has been enabled"
+                        }
+                        Toast.makeText(context, toggleMessage, Toast.LENGTH_SHORT).show()
+                    }
+                    ToggleSatelliteOverlay -> {
+                        val toggleMessage = if (viewState.isSatelliteOverlayEnabled) {
+                            "Clouds have been disabled"
+                        } else {
+                            "Clouds have been enabled"
                         }
                         Toast.makeText(context, toggleMessage, Toast.LENGTH_SHORT).show()
                     }
@@ -286,8 +312,10 @@ fun MapScreen(
 private const val CLUSTER_ZOOM_PADDING = 150
 private const val WEATHER_OVERLAY_TRANSPARENCY = 0.35f
 private const val RADAR_OVERLAY_TRANSPARENCY = 0.15f
+private const val SATELLITE_OVERLAY_TRANSPARENCY = 0.45f
 private const val WEATHER_OVERLAY_Z_INDEX = 1f
 private const val RADAR_OVERLAY_Z_INDEX = 2f
+private const val SATELLITE_OVERLAY_Z_INDEX = 3f
 
 fun Cluster<*>.clusterZoomCameraUpdate(): CameraUpdate {
     val latLngBoundsBuilder = LatLngBounds.Builder()
