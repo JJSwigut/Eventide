@@ -26,8 +26,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.jjswigut.eventide.R
+import com.jjswigut.eventide.ui.theme.BackgroundDark
 import com.jjswigut.eventide.ui.theme.LightText
 import com.jjswigut.eventide.ui.theme.PrimaryDark
+import com.jjswigut.eventide.ui.theme.SecondaryLight
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -37,16 +39,18 @@ fun MenuButton(
     modifier: Modifier = Modifier,
     centerButton: MenuItem,
     menuButtons: List<MenuItem>,
+    selectedActions: Set<Action> = emptySet(),
     actionHandler: (Action) -> Unit,
 ) {
-    val mainButtonSize = 50.dp
-    val spacing = 8.dp
+    val mainButtonSize = 58.dp
+    val menuButtonSize = 48.dp
+    val spacing = 10.dp
     val containerSize = mainButtonSize + calculateMaxExtension(menuButtons.size, mainButtonSize, spacing)
     val expansionTransition = updateTransition(targetState = expanded, label = "Menu expansion")
 
     Box(
         modifier = modifier
-            .padding(16.dp)
+            .padding(24.dp)
             .size(containerSize),
         contentAlignment = Alignment.BottomEnd,
     ) {
@@ -69,29 +73,33 @@ fun MenuButton(
             val angle = menuButtonAngle(index, angleOffset)
             val scale = 0.8f + (0.2f * progress.value)
 
-            OutsideButton(
-                menuButton = menuButton,
-                enabled = expanded,
-                modifier = Modifier
-                    .offset(
-                        x = cos(angle) * baseOffset * progress.value,
-                        y = sin(angle) * baseOffset * progress.value,
-                    )
-                    .graphicsLayer {
-                        alpha = progress.value
-                        scaleX = scale
-                        scaleY = scale
-                    },
-                onClick = actionHandler,
-            )
+            if (expanded || progress.value > 0.01f) {
+                OutsideButton(
+                    menuButton = menuButton,
+                    enabled = expanded,
+                    selected = selectedActions.contains(menuButton.action),
+                    size = menuButtonSize,
+                    modifier = Modifier
+                        .offset(
+                            x = cos(angle) * baseOffset * progress.value,
+                            y = sin(angle) * baseOffset * progress.value,
+                        )
+                        .graphicsLayer {
+                            alpha = progress.value
+                            scaleX = scale
+                            scaleY = scale
+                        },
+                    onClick = actionHandler,
+                )
+            }
         }
 
         Box(
             modifier = Modifier
                 .size(mainButtonSize)
+                .shadow(10.dp, CircleShape)
                 .background(shape = CircleShape, color = PrimaryDark)
                 .clip(CircleShape)
-                .shadow(10.dp, CircleShape)
                 .clickable { actionHandler(centerButton.action) },
             contentAlignment = Alignment.Center,
         ) {
@@ -128,14 +136,19 @@ private fun OutsideButton(
     modifier: Modifier,
     menuButton: MenuItem,
     enabled: Boolean,
+    selected: Boolean,
+    size: Dp,
     onClick: (Action) -> Unit,
 ) {
+    val backgroundColor = if (selected) SecondaryLight else PrimaryDark
+    val iconColor = if (selected) BackgroundDark else LightText
+
     Column(
         modifier = modifier
-            .size(40.dp)
-            .background(shape = CircleShape, color = PrimaryDark)
-            .clip(CircleShape)
+            .size(size)
             .shadow(8.dp, CircleShape)
+            .background(shape = CircleShape, color = backgroundColor)
+            .clip(CircleShape)
             .clickable(enabled = enabled) {
                 onClick(menuButton.action)
             },
@@ -145,7 +158,7 @@ private fun OutsideButton(
         Icon(
             painter = painterResource(id = menuButton.iconRes),
             contentDescription = null,
-            tint = LightText,
+            tint = iconColor,
         )
     }
 }

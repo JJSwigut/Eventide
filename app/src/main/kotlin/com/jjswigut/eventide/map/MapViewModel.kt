@@ -39,7 +39,9 @@ import com.jjswigut.eventide.map.MapAction.SetTideAlertLeadTime
 import com.jjswigut.eventide.map.MapAction.SetTideUnit
 import com.jjswigut.eventide.map.MapAction.SetTimeFormat
 import com.jjswigut.eventide.map.MapAction.ToggleFavorite
+import com.jjswigut.eventide.map.MapAction.ToggleRadarOverlay
 import com.jjswigut.eventide.map.MapAction.ToggleTideAlert
+import com.jjswigut.eventide.map.MapAction.ToggleWeatherOverlay
 import com.jjswigut.eventide.map.models.StationClusterItem
 import com.jjswigut.eventide.network.utils.process
 import com.jjswigut.eventide.repository.FavoritesRepository
@@ -81,6 +83,16 @@ private val listOfButtons = persistentListOf(
         text = "Favorites",
         iconRes = R.drawable.star_filled,
         action = OpenFavorites,
+    ),
+    MenuItem(
+        text = "Radar",
+        iconRes = R.drawable.radar_overlay,
+        action = ToggleRadarOverlay,
+    ),
+    MenuItem(
+        text = "Weather",
+        iconRes = R.drawable.weather_overlay,
+        action = ToggleWeatherOverlay,
     ),
 )
 
@@ -212,6 +224,22 @@ class MapViewModel(
                 }
                 is OpenFavorite -> {
                     openFavorite(action.stationId)
+                }
+                is ToggleRadarOverlay -> {
+                    updateViewState {
+                        copy(
+                            isRadarOverlayEnabled = !isRadarOverlayEnabled,
+                            menuState = menuState.copy(expanded = false),
+                        )
+                    }
+                }
+                is ToggleWeatherOverlay -> {
+                    updateViewState {
+                        copy(
+                            isWeatherOverlayEnabled = !isWeatherOverlayEnabled,
+                            menuState = menuState.copy(expanded = false),
+                        )
+                    }
                 }
                 is MenuClicked -> {
                     updateViewState {
@@ -651,6 +679,8 @@ class MapViewModel(
             settings = AppSettings(),
             showFavorites = false,
             showSettings = false,
+            isRadarOverlayEnabled = false,
+            isWeatherOverlayEnabled = false,
             menuState = MenuState(
                 centerButton = mainButton,
                 outsideButtons = listOfButtons,
@@ -685,6 +715,8 @@ data class MapViewState(
     val settings: AppSettings,
     val showFavorites: Boolean,
     val showSettings: Boolean,
+    val isRadarOverlayEnabled: Boolean,
+    val isWeatherOverlayEnabled: Boolean,
     val menuState: MenuState,
 )
 
@@ -715,6 +747,8 @@ sealed interface MapAction : Action {
     data class OpenFavorite(val stationId: String) : MapAction
     data object OpenSettings : MapAction
     data object CloseSettings : MapAction
+    data object ToggleRadarOverlay : MapAction
+    data object ToggleWeatherOverlay : MapAction
 
     data object CloseTides : MapAction
 
