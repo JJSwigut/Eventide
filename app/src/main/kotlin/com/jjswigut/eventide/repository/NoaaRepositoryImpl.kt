@@ -3,11 +3,13 @@ package com.jjswigut.eventide.repository
 import com.google.android.gms.maps.model.LatLngBounds
 import com.jjswigut.eventide.StationsDb
 import com.jjswigut.eventide.astronomy.withSunMoonData
+import com.jjswigut.eventide.data.models.MarineConditions
 import com.jjswigut.eventide.data.models.Station
 import com.jjswigut.eventide.data.models.TideDay
 import com.jjswigut.eventide.data.models.Weather
 import com.jjswigut.eventide.db.toModel
 import com.jjswigut.eventide.network.responses.StationsResponse.StationDto
+import com.jjswigut.eventide.network.service.MarineService
 import com.jjswigut.eventide.network.service.NoaaService
 import com.jjswigut.eventide.network.service.WeatherService
 import com.jjswigut.eventide.network.utils.Either
@@ -21,6 +23,7 @@ import kotlinx.coroutines.launch
 class NoaaRepositoryImpl(
     private val noaaService: NoaaService,
     private val weatherService: WeatherService,
+    private val marineService: MarineService,
     private val stationsDb: StationsDb,
 ) : NoaaRepository {
 
@@ -73,6 +76,15 @@ class NoaaRepositoryImpl(
                 }
             }
         }
+
+    override suspend fun getMarineConditionsForStation(stationID: String): Either<MarineConditions, GenericError> {
+        val station = getStationById(stationID) ?: return Either.success(MarineConditions())
+        return marineService.getMarineConditions(
+            stationId = stationID,
+            latitude = station.latLng.latitude,
+            longitude = station.latLng.longitude,
+        )
+    }
 
     override suspend fun getTidesImmediately(
         stationID: String,

@@ -12,6 +12,7 @@ import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.CameraPositionState
 import com.jjswigut.eventide.R
 import com.jjswigut.eventide.alerts.TideAlertScheduler
+import com.jjswigut.eventide.data.models.MarineConditions
 import com.jjswigut.eventide.data.models.Station
 import com.jjswigut.eventide.data.models.TideAlertFilter
 import com.jjswigut.eventide.data.models.TideAlertPreference
@@ -40,6 +41,7 @@ import com.jjswigut.eventide.map.MapAction.SetTideUnit
 import com.jjswigut.eventide.map.MapAction.SetTimeFormat
 import com.jjswigut.eventide.map.MapAction.ToggleFavorite
 import com.jjswigut.eventide.map.MapAction.ToggleRadarOverlay
+import com.jjswigut.eventide.map.MapAction.ToggleSatelliteOverlay
 import com.jjswigut.eventide.map.MapAction.ToggleTideAlert
 import com.jjswigut.eventide.map.MapAction.ToggleWeatherOverlay
 import com.jjswigut.eventide.map.models.StationClusterItem
@@ -93,6 +95,11 @@ private val listOfButtons = persistentListOf(
         text = "Weather",
         iconRes = R.drawable.weather_overlay,
         action = ToggleWeatherOverlay,
+    ),
+    MenuItem(
+        text = "Clouds",
+        iconRes = R.drawable.weather_overlay,
+        action = ToggleSatelliteOverlay,
     ),
 )
 
@@ -158,6 +165,8 @@ class MapViewModel(
                     updateViewState {
                         copy(
                             listOfTideDays = null,
+                            marineConditions = null,
+                            isMarineConditionsLoading = false,
                             selectedStation = null,
                             isSelectedStationFavorite = false,
                             showEmptyState = stations.isEmpty() && isMapLoaded,
@@ -237,6 +246,14 @@ class MapViewModel(
                     updateViewState {
                         copy(
                             isWeatherOverlayEnabled = !isWeatherOverlayEnabled,
+                            menuState = menuState.copy(expanded = false),
+                        )
+                    }
+                }
+                is ToggleSatelliteOverlay -> {
+                    updateViewState {
+                        copy(
+                            isSatelliteOverlayEnabled = !isSatelliteOverlayEnabled,
                             menuState = menuState.copy(expanded = false),
                         )
                     }
@@ -367,6 +384,8 @@ class MapViewModel(
                 listOfTideDays = placeholderCards.toImmutableList(),
                 selectedStation = station,
                 isSelectedStationFavorite = favorites.any { it.id == stationId },
+                marineConditions = null,
+                isMarineConditionsLoading = true,
                 showEmptyState = false,
                 showFavorites = false,
                 showSettings = false,
@@ -410,9 +429,33 @@ class MapViewModel(
                             },
                         )
                     }
+
+                    launch(dispatcher.io) {
+                        noaaRepository.getMarineConditionsForStation(stationId).process(
+                            onSuccess = { marineConditions ->
+                                updateViewState {
+                                    copy(
+                                        marineConditions = marineConditions.takeIf { it.hasData },
+                                        isMarineConditionsLoading = false,
+                                    )
+                                }
+                            },
+                            onError = {
+                                updateViewState {
+                                    copy(
+                                        marineConditions = null,
+                                        isMarineConditionsLoading = false,
+                                    )
+                                }
+                            },
+                        )
+                    }
                 },
                 onError = {
                     // todo add kermit logging
+                    updateViewState {
+                        copy(isMarineConditionsLoading = false)
+                    }
                 },
             )
         }
@@ -672,6 +715,8 @@ class MapViewModel(
             isMapLoaded = false,
             showEmptyState = false,
             listOfTideDays = null,
+            marineConditions = null,
+            isMarineConditionsLoading = false,
             selectedStation = null,
             isSelectedStationFavorite = false,
             favorites = persistentListOf(),
@@ -681,6 +726,7 @@ class MapViewModel(
             showSettings = false,
             isRadarOverlayEnabled = false,
             isWeatherOverlayEnabled = false,
+            isSatelliteOverlayEnabled = false,
             menuState = MenuState(
                 centerButton = mainButton,
                 outsideButtons = listOfButtons,
@@ -708,6 +754,8 @@ data class MapViewState(
     val showEmptyState: Boolean,
     val stations: ImmutableList<StationClusterItem>,
     val listOfTideDays: ImmutableList<TideDay>?,
+    val marineConditions: MarineConditions?,
+    val isMarineConditionsLoading: Boolean,
     val selectedStation: Station?,
     val isSelectedStationFavorite: Boolean,
     val favorites: ImmutableList<Station>,
@@ -717,6 +765,7 @@ data class MapViewState(
     val showSettings: Boolean,
     val isRadarOverlayEnabled: Boolean,
     val isWeatherOverlayEnabled: Boolean,
+    val isSatelliteOverlayEnabled: Boolean,
     val menuState: MenuState,
 )
 
@@ -749,6 +798,7 @@ sealed interface MapAction : Action {
     data object CloseSettings : MapAction
     data object ToggleRadarOverlay : MapAction
     data object ToggleWeatherOverlay : MapAction
+    data object ToggleSatelliteOverlay : MapAction
 
     data object CloseTides : MapAction
 
