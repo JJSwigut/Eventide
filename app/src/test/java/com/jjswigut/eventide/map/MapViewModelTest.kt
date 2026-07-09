@@ -42,6 +42,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -143,6 +144,22 @@ class MapViewModelTest {
         assertEquals("A tides", day?.date)
         assertNull(day?.weather)
         assertFalse(day?.isWeatherLoading ?: true)
+    }
+
+    @Test
+    fun `opening settings closes favorites and collapses expanded menu`() = runTest(testDispatcher) {
+        val viewModel = viewModel(FakeNoaaRepository())
+
+        viewModel.handleAction(MapAction.MenuClicked)
+        viewModel.handleAction(MapAction.OpenFavorites)
+        viewModel.handleAction(MapAction.MenuClicked)
+        viewModel.handleAction(MapAction.OpenSettings)
+        advanceUntilIdle()
+
+        val state = viewModel.viewState.value
+        assertTrue(state.showSettings)
+        assertFalse(state.showFavorites)
+        assertFalse(state.menuState.expanded)
     }
 
     private fun viewModel(repository: FakeNoaaRepository): MapViewModel {

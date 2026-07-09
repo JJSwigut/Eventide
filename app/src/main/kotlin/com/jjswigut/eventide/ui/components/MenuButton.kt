@@ -2,8 +2,10 @@ package com.jjswigut.eventide.ui.components
 
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.background
@@ -23,6 +25,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.jjswigut.eventide.R
@@ -42,6 +48,7 @@ fun MenuButton(
     selectedActions: Set<Action> = emptySet(),
     actionHandler: (Action) -> Unit,
 ) {
+    val motionEnabled = rememberEventideMotionEnabled()
     val mainButtonSize = 58.dp
     val menuButtonSize = 48.dp
     val spacing = 10.dp
@@ -58,22 +65,32 @@ fun MenuButton(
         val baseOffset = mainButtonSize + spacing
 
         menuButtons.forEachIndexed { index, menuButton ->
-            val progress = expansionTransition.animateFloat(
+            val animatedProgress = expansionTransition.animateFloat(
                 transitionSpec = {
-                    tween(
-                        durationMillis = if (targetState) 220 else 140,
-                        delayMillis = if (targetState) index * 30 else 0,
-                        easing = FastOutSlowInEasing,
+                    spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = if (targetState) {
+                            Spring.StiffnessMediumLow
+                        } else {
+                            Spring.StiffnessMedium
+                        },
                     )
                 },
                 label = "Menu option $index progress",
             ) { isExpanded ->
                 if (isExpanded) 1f else 0f
             }
+            val progress = if (motionEnabled) {
+                animatedProgress.value
+            } else if (expanded) {
+                1f
+            } else {
+                0f
+            }
             val angle = menuButtonAngle(index, angleOffset)
-            val scale = 0.8f + (0.2f * progress.value)
+            val scale = 0.8f + (0.2f * progress)
 
-            if (expanded || progress.value > 0.01f) {
+            if (expanded || progress > 0.01f) {
                 OutsideButton(
                     menuButton = menuButton,
                     enabled = expanded,
@@ -81,11 +98,11 @@ fun MenuButton(
                     size = menuButtonSize,
                     modifier = Modifier
                         .offset(
-                            x = cos(angle) * baseOffset * progress.value,
-                            y = sin(angle) * baseOffset * progress.value,
+                            x = cos(angle) * baseOffset * progress,
+                            y = sin(angle) * baseOffset * progress,
                         )
                         .graphicsLayer {
-                            alpha = progress.value
+                            alpha = progress
                             scaleX = scale
                             scaleY = scale
                         },
@@ -100,17 +117,17 @@ fun MenuButton(
                 .shadow(10.dp, CircleShape)
                 .background(shape = CircleShape, color = PrimaryDark)
                 .clip(CircleShape)
-                .clickable { actionHandler(centerButton.action) },
+                .clickable(role = Role.Button) { actionHandler(centerButton.action) },
             contentAlignment = Alignment.Center,
         ) {
             Crossfade(
                 targetState = expanded,
-                animationSpec = tween(durationMillis = 120),
+                animationSpec = tween(durationMillis = if (motionEnabled) 120 else 0),
                 label = "Menu icon",
             ) { isExpanded ->
                 Icon(
                     painter = painterResource(if (isExpanded) R.drawable.close_icon else centerButton.iconRes),
-                    contentDescription = null,
+                    contentDescription = if (isExpanded) "Close menu" else "Open menu",
                     tint = LightText,
                 )
             }
@@ -140,16 +157,32 @@ private fun OutsideButton(
     size: Dp,
     onClick: (Action) -> Unit,
 ) {
-    val backgroundColor = if (selected) SecondaryLight else PrimaryDark
-    val iconColor = if (selected) BackgroundDark else LightText
+    val motionEnabled = rememberEventideMotionEnabled()
+    val backgroundColor = animateColorAsState(
+        targetValue = if (selected) SecondaryLight else PrimaryDark,
+        animationSpec = tween(durationMillis = if (motionEnabled) 140 else 0),
+        label = "${menuButton.text} background",
+    )
+    val iconColor = animateColorAsState(
+        targetValue = if (selected) BackgroundDark else LightText,
+        animationSpec = tween(durationMillis = if (motionEnabled) 140 else 0),
+        label = "${menuButton.text} icon",
+    )
 
     Column(
         modifier = modifier
             .size(size)
             .shadow(8.dp, CircleShape)
-            .background(shape = CircleShape, color = backgroundColor)
+            .background(shape = CircleShape, color = backgroundColor.value)
             .clip(CircleShape)
-            .clickable(enabled = enabled) {
+            .semantics {
+                contentDescription = menuButton.text
+                stateDescription = if (selected) "Selected" else "Not selected"
+            }
+            .clickable(
+                enabled = enabled,
+                role = Role.Button,
+            ) {
                 onClick(menuButton.action)
             },
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -158,7 +191,7 @@ private fun OutsideButton(
         Icon(
             painter = painterResource(id = menuButton.iconRes),
             contentDescription = null,
-            tint = iconColor,
+            tint = iconColor.value,
         )
     }
 }
