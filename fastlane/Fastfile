@@ -39,8 +39,8 @@ platform :android do
       json_key_data: json_key_data,
       track: env_or_default("PLAY_TRACK", "internal"),
       release_status: env_or_default("PLAY_RELEASE_STATUS", "completed"),
-      skip_upload_metadata: true,
-      skip_upload_changelogs: true,
+      skip_upload_metadata: false,
+      skip_upload_changelogs: false,
       skip_upload_images: true,
       skip_upload_screenshots: true
     )

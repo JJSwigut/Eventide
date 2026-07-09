@@ -1,6 +1,5 @@
 package com.jjswigut.eventide.network.responses
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -18,19 +17,8 @@ data class NwsAlertProperties(
     val event: String? = null,
     val headline: String? = null,
     val severity: String? = null,
-)
-
-@Serializable
-data class OpenMeteoMarineResponse(
-    val current: OpenMeteoMarineCurrent? = null,
-)
-
-@Serializable
-data class OpenMeteoMarineCurrent(
-    @SerialName("wave_height")
-    val waveHeight: Double? = null,
-    @SerialName("wave_period")
-    val wavePeriod: Double? = null,
-    @SerialName("sea_surface_temperature")
-    val seaSurfaceTemperature: Double? = null,
+    val effective: String? = null,
+    val onset: String? = null,
+    val expires: String? = null,
+    val ends: String? = null,
 )

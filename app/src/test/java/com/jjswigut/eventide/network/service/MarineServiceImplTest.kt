@@ -1,8 +1,16 @@
 package com.jjswigut.eventide.network.service
 
+import com.jjswigut.eventide.network.client.MarineServiceClient
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
+import io.ktor.http.HttpHeaders
+import io.ktor.http.headersOf
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import java.time.Instant
+import java.util.concurrent.atomic.AtomicInteger
 
 class MarineServiceImplTest {
     @Test
@@ -53,6 +61,7 @@ class MarineServiceImplTest {
         assertEquals("8.0s", buoy.wavePeriod)
         assertEquals("64.6°F", buoy.waterTemperature)
         assertEquals("1013.4hPa", buoy.pressure)
+        assertEquals(Instant.parse("2026-07-07T18:50:00Z"), buoy.observedAt)
     }
 
     @Test
@@ -76,5 +85,72 @@ class MarineServiceImplTest {
         )
 
         assertNull(buoy)
+    }
+
+    @Test
+    fun `parseCoopsTimestamp reads CO-OPS UTC timestamps resiliently`() {
+        assertEquals(
+            Instant.parse("2026-07-07T18:50:00Z"),
+            MarineServiceImpl.parseCoopsTimestamp("2026-07-07 18:50"),
+        )
+        assertEquals(
+            Instant.parse("2026-07-07T18:50:30Z"),
+            MarineServiceImpl.parseCoopsTimestamp("2026-07-07 18:50:30"),
+        )
+        assertNull(MarineServiceImpl.parseCoopsTimestamp("not a timestamp"))
+    }
+
+    @Test
+    fun `parseNwsTimestamp reads alert offset times`() {
+        assertEquals(
+            Instant.parse("2026-07-07T18:50:00Z"),
+            MarineServiceImpl.parseNwsTimestamp("2026-07-07T14:50:00-04:00"),
+        )
+        assertNull(MarineServiceImpl.parseNwsTimestamp("not a timestamp"))
+    }
+
+    @Test
+    fun `getMarineConditions caches NDBC active station metadata`() = runTest {
+        val activeStationsRequests = AtomicInteger(0)
+        val client = MarineServiceClient(
+            MockEngine { request ->
+                val url = request.url.toString()
+                when {
+                    url.endsWith("/activestations.xml") -> {
+                        activeStationsRequests.incrementAndGet()
+                        respond(
+                            content = """
+                                <?xml version="1.0" encoding="utf-8"?>
+                                <stations>
+                                  <station id="44060" lat="41.263" lon="-72.067" name="Eastern Long Island Sound" met="y"/>
+                                </stations>
+                            """.trimIndent(),
+                            headers = headersOf(HttpHeaders.ContentType, "application/xml"),
+                        )
+                    }
+                    url.endsWith("/data/realtime2/44060.txt") -> respond(
+                        content = """
+                            #YY  MM DD hh mm WDIR WSPD GST WVHT DPD PRES WTMP
+                            2026 07 07 18 50 220  5.0 7.0 1.2 8 1013.4 18.1
+                        """.trimIndent(),
+                    )
+                    url.contains("/alerts/active") -> respond(
+                        content = """{"features":[]}""",
+                        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
+                    url.contains("/api/prod/datagetter") -> respond(
+                        content = """{"data":[{"t":"2026-07-07 18:50","v":"64.1"}]}""",
+                        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
+                    else -> error("Unexpected URL: $url")
+                }
+            },
+        )
+        val service = MarineServiceImpl(client)
+
+        service.getMarineConditions("8461490", 41.3, -72.0)
+        service.getMarineConditions("8461490", 41.3, -72.0)
+
+        assertEquals(1, activeStationsRequests.get())
     }
 }

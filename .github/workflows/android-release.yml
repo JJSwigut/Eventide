@@ -49,6 +49,21 @@ jobs:
           echo "Using github.run_number (${{ github.run_number }}) with offset +9. Calculated versionCode: $CALCULATED_VERSION_CODE"
           echo "VERSION_CODE=$CALCULATED_VERSION_CODE" >> $GITHUB_OUTPUT
 
+      - name: Load Release Notes
+        id: release_notes
+        run: |
+          RELEASE_NOTES_FILE="release-notes/${{ steps.extract_version.outputs.VERSION_NAME }}.md"
+          if [[ ! -f "$RELEASE_NOTES_FILE" ]]; then
+            echo "::error::Release notes file not found: $RELEASE_NOTES_FILE"
+            exit 1
+          fi
+          echo "RELEASE_NOTES_FILE=$RELEASE_NOTES_FILE" >> $GITHUB_OUTPUT
+          {
+            echo "RELEASE_NOTES<<EOF"
+            cat "$RELEASE_NOTES_FILE"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Decode Keystore and Create Properties File
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -87,7 +102,9 @@ jobs:
           tag_name: v${{ steps.extract_version.outputs.VERSION_NAME }}_build-${{ steps.set_version_code.outputs.VERSION_CODE }}
           name: Release v${{ steps.extract_version.outputs.VERSION_NAME }} (Build ${{ steps.set_version_code.outputs.VERSION_CODE }})
           body: |
-            Automated release for version ${{ steps.extract_version.outputs.VERSION_NAME }}, build ${{ steps.set_version_code.outputs.VERSION_CODE }}.
+            ${{ steps.release_notes.outputs.RELEASE_NOTES }}
+
+            Build ${{ steps.set_version_code.outputs.VERSION_CODE }}.
             Triggered by commit ${{ github.sha }}.
           files: ${{ steps.build_aab.outputs.AAB_PATH }}
           draft: false
@@ -100,6 +117,14 @@ jobs:
 
       - name: Install Fastlane dependencies
         run: bundle install --jobs 4 --retry 3
+
+      - name: Prepare Google Play changelog
+        run: |
+          CHANGELOG_DIR="fastlane/metadata/android/en-US/changelogs"
+          CHANGELOG_FILE="$CHANGELOG_DIR/${{ steps.set_version_code.outputs.VERSION_CODE }}.txt"
+          mkdir -p "$CHANGELOG_DIR"
+          cp "${{ steps.release_notes.outputs.RELEASE_NOTES_FILE }}" "$CHANGELOG_FILE"
+          echo "PLAY_CHANGELOG_PATH=$CHANGELOG_FILE" >> "$GITHUB_ENV"
 
       - name: Deploy to Google Play
         env:

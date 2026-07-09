@@ -2,6 +2,7 @@ package com.jjswigut.eventide.network.client
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngine
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.get
@@ -20,8 +21,13 @@ class MarineServiceClient(engine: HttpClientEngine) {
                 },
             )
         }
+        install(HttpTimeout) {
+            connectTimeoutMillis = CONNECT_TIMEOUT_MS
+            requestTimeoutMillis = REQUEST_TIMEOUT_MS
+            socketTimeoutMillis = SOCKET_TIMEOUT_MS
+        }
         defaultRequest {
-            header("User-Agent", "Eventide/1.0 (jjswigut@gmail.com)")
+            header("User-Agent", USER_AGENT)
         }
     }
 
@@ -33,7 +39,7 @@ class MarineServiceClient(engine: HttpClientEngine) {
         parameter("date", "latest")
         parameter("station", stationId)
         parameter("product", product)
-        parameter("time_zone", "lst_ldt")
+        parameter("time_zone", "gmt")
         parameter("units", "english")
         parameter("application", "Eventide")
         parameter("format", "json")
@@ -48,24 +54,13 @@ class MarineServiceClient(engine: HttpClientEngine) {
 
     suspend fun getNdbcRealtimeText(stationId: String) = client.get("$NDBC_BASE_URL/data/realtime2/$stationId.txt")
 
-    suspend fun getOpenMeteoMarine(
-        latitude: Double,
-        longitude: Double,
-    ) = client.get {
-        url("$OPEN_METEO_MARINE_BASE_URL/v1/marine")
-        parameter("latitude", latitude)
-        parameter("longitude", longitude)
-        parameter("current", "wave_height,wave_period,sea_surface_temperature")
-        parameter("length_unit", "imperial")
-        parameter("temperature_unit", "fahrenheit")
-        parameter("timezone", "auto")
-        parameter("cell_selection", "sea")
-    }
-
     companion object {
         private const val COOPS_BASE_URL = "https://api.tidesandcurrents.noaa.gov"
         private const val NWS_BASE_URL = "https://api.weather.gov"
         private const val NDBC_BASE_URL = "https://www.ndbc.noaa.gov"
-        private const val OPEN_METEO_MARINE_BASE_URL = "https://marine-api.open-meteo.com"
+        private const val USER_AGENT = "Eventide/1.0 (jjswigut@gmail.com)"
+        private const val CONNECT_TIMEOUT_MS = 10_000L
+        private const val REQUEST_TIMEOUT_MS = 30_000L
+        private const val SOCKET_TIMEOUT_MS = 20_000L
     }
 }

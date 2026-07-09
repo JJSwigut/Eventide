@@ -47,6 +47,9 @@ import com.jjswigut.eventide.ui.components.SectionTitleText
 import com.jjswigut.eventide.ui.components.ShimmerLoading
 import com.jjswigut.eventide.ui.theme.BackgroundDark
 import com.jjswigut.eventide.ui.theme.PrimaryLight
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
 
@@ -257,6 +260,12 @@ private fun TidesSection(
             ),
             text = "Tides",
         )
+        BodyText(
+            modifier = Modifier.padding(horizontal = 8.dp),
+            text = day.tideSource,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+        )
 
         if (day.isTidesLoading) {
             Column(
@@ -271,6 +280,23 @@ private fun TidesSection(
                 verticalArrangement = Arrangement.Center,
             ) {
                 ShimmerLoading(modifier = Modifier.fillMaxWidth())
+            }
+        } else if (day.tides.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(
+                        horizontal = adaptiveSize.contentPadding,
+                        vertical = adaptiveSize.sectionHeaderPadding,
+                    ),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                BodyText(
+                    text = "Tides unavailable",
+                    textAlign = TextAlign.Center,
+                )
             }
         } else {
             Column(
@@ -442,8 +468,37 @@ private fun WeatherContent(
         }
 
         WindInfo(windSpeed = weather.windSpeed, adaptiveSize = adaptiveSize)
+
+        BodyText(
+            text = weather.sourceLabel(),
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+        )
     }
 }
+
+private fun Weather.sourceLabel(): String {
+    val validity = forecastStart?.let { start ->
+        val end = forecastEnd
+        if (end == null) {
+            "valid ${start.shortLabel()}"
+        } else {
+            "valid ${start.shortLabel()}-${end.shortLabel()}"
+        }
+    }
+    val issued = forecastIssuedAt?.let { "issued ${it.shortLabel()}" }
+    return listOfNotNull(
+        "$source ${sourceType.lowercase(Locale.US)}",
+        validity,
+        issued,
+    ).joinToString(" - ")
+}
+
+private fun OffsetDateTime.shortLabel(): String {
+    return forecastTimeFormatter.format(this)
+}
+
+private val forecastTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d h:mma", Locale.US)
 
 @Composable
 private fun TemperatureBox(

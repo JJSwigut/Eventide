@@ -17,6 +17,7 @@ import com.jjswigut.eventide.data.models.Station
 import com.jjswigut.eventide.data.models.TideAlertFilter
 import com.jjswigut.eventide.data.models.TideAlertPreference
 import com.jjswigut.eventide.data.models.TideDay
+import com.jjswigut.eventide.data.models.Weather
 import com.jjswigut.eventide.dispatchers.Dispatcher
 import com.jjswigut.eventide.map.MapAction.ClearHomeStation
 import com.jjswigut.eventide.map.MapAction.CloseClicked
@@ -68,6 +69,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlin.math.atan2
@@ -127,6 +129,9 @@ class MapViewModel(
     private var isInitialLoad = true
     private var lastBounds: LatLngBounds? = null
     private var mapMotionDebounceJob: Job? = null
+    private var stationDetailJob: Job? = null
+    private var stationDetailRequestId = 0L
+    private var activeStationDetailId: String? = null
 
     // Debounce delay for map motion to reduce excessive station fetches
     private val MAP_MOTION_DEBOUNCE_MS = 200L
@@ -162,16 +167,7 @@ class MapViewModel(
                     handleMapMotion(action.isMoving, action.bounds)
                 }
                 is CloseTides -> {
-                    updateViewState {
-                        copy(
-                            listOfTideDays = null,
-                            marineConditions = null,
-                            isMarineConditionsLoading = false,
-                            selectedStation = null,
-                            isSelectedStationFavorite = false,
-                            showEmptyState = stations.isEmpty() && isMapLoaded,
-                        )
-                    }
+                    closeStationDetails()
                 }
                 is NavigateToNearestStation -> {
                     navigateToNearestStation()
@@ -365,7 +361,8 @@ class MapViewModel(
         return earthRadius * c
     }
 
-    private suspend fun getTidesForStation(stationId: String) {
+    private fun getTidesForStation(stationId: String) {
+        val requestId = startStationDetailRequest(stationId)
         val station = getStationForId(stationId)
 
         // Show 7 placeholder cards immediately with loading state
@@ -392,73 +389,171 @@ class MapViewModel(
             )
         }
 
-        // Fetch tides in background
-        viewModelScope.launch(dispatcher.io) {
-            noaaRepository.getTidesForStation(stationId).process(
-                onSuccess = { tideDays ->
-                    // Update with tides (weather still loading)
-                    val tidesWithLoadingWeather = tideDays.map {
-                        it.copy(
-                            isTidesLoading = false,
-                            isWeatherLoading = true,
-                        )
-                    }
-                    updateViewState {
-                        copy(listOfTideDays = tidesWithLoadingWeather.toImmutableList())
-                    }
+        stationDetailJob = viewModelScope.launch(dispatcher.io) {
+            launch { loadTidesAndWeather(stationId = stationId, requestId = requestId) }
+            launch { loadMarineConditions(stationId = stationId, requestId = requestId) }
+        }
+    }
 
-                    // Fetch weather in background
-                    launch(dispatcher.io) {
-                        noaaRepository.getTidesWithWeather(stationId).process(
-                            onSuccess = { tideDaysWithWeather ->
-                                updateViewState {
-                                    copy(listOfTideDays = tideDaysWithWeather.toImmutableList())
-                                }
-                            },
-                            onError = {
-                                // Weather failed, show tides without weather
-                                val tidesWithoutWeather = tideDays.map {
-                                    it.copy(
-                                        isTidesLoading = false,
-                                        isWeatherLoading = false,
-                                    )
-                                }
-                                updateViewState {
-                                    copy(listOfTideDays = tidesWithoutWeather.toImmutableList())
-                                }
-                            },
-                        )
-                    }
+    private suspend fun loadTidesAndWeather(stationId: String, requestId: Long) = coroutineScope {
+        val weatherDeferred = async { noaaRepository.getWeatherForStation(stationId) }
 
-                    launch(dispatcher.io) {
-                        noaaRepository.getMarineConditionsForStation(stationId).process(
-                            onSuccess = { marineConditions ->
-                                updateViewState {
-                                    copy(
-                                        marineConditions = marineConditions.takeIf { it.hasData },
-                                        isMarineConditionsLoading = false,
-                                    )
-                                }
-                            },
-                            onError = {
-                                updateViewState {
-                                    copy(
-                                        marineConditions = null,
-                                        isMarineConditionsLoading = false,
-                                    )
-                                }
-                            },
-                        )
-                    }
-                },
-                onError = {
-                    // todo add kermit logging
-                    updateViewState {
-                        copy(isMarineConditionsLoading = false)
-                    }
-                },
+        val tidesResult = noaaRepository.getTidesForStation(stationId)
+        var tideDaysForWeather: List<TideDay> = emptyList()
+
+        tidesResult.process(
+            onSuccess = { tideDays ->
+                tideDaysForWeather = tideDays
+                updateStationDetailState(requestId, stationId) {
+                    copy(
+                        listOfTideDays = if (tideDays.isEmpty()) {
+                            unavailableTideDays().toImmutableList()
+                        } else {
+                            tideDays.map {
+                                it.copy(
+                                    isTidesLoading = false,
+                                    isWeatherLoading = true,
+                                )
+                            }.toImmutableList()
+                        },
+                    )
+                }
+            },
+            onError = {
+                updateStationDetailState(requestId, stationId) {
+                    copy(listOfTideDays = unavailableTideDays().toImmutableList())
+                }
+            },
+        )
+
+        weatherDeferred.await().process(
+            onSuccess = { weather ->
+                updateStationDetailState(requestId, stationId) {
+                    copy(
+                        listOfTideDays = mergeTidesAndWeather(
+                            tideDays = tideDaysForWeather,
+                            weather = weather,
+                        ).toImmutableList(),
+                    )
+                }
+            },
+            onError = {
+                updateStationDetailState(requestId, stationId) {
+                    copy(
+                        listOfTideDays = (listOfTideDays ?: unavailableTideDays()).map {
+                            it.copy(isTidesLoading = false, isWeatherLoading = false)
+                        }.toImmutableList(),
+                    )
+                }
+            },
+        )
+    }
+
+    private suspend fun loadMarineConditions(stationId: String, requestId: Long) {
+        noaaRepository.getMarineConditionsForStation(stationId).process(
+            onSuccess = { marineConditions ->
+                updateStationDetailState(requestId, stationId) {
+                    copy(
+                        marineConditions = marineConditions.takeIf { it.hasData },
+                        isMarineConditionsLoading = false,
+                    )
+                }
+            },
+            onError = {
+                updateStationDetailState(requestId, stationId) {
+                    copy(
+                        marineConditions = null,
+                        isMarineConditionsLoading = false,
+                    )
+                }
+            },
+        )
+    }
+
+    private fun mergeTidesAndWeather(
+        tideDays: List<TideDay>,
+        weather: List<Weather>,
+    ): List<TideDay> {
+        if (tideDays.isEmpty()) {
+            return unavailableTideDays(weather)
+        }
+
+        return tideDays.mapIndexed { index, tideDay ->
+            tideDay.copy(
+                weather = weather.getOrNull(index),
+                isTidesLoading = false,
+                isWeatherLoading = false,
             )
         }
+    }
+
+    private fun unavailableTideDays(weather: List<Weather> = emptyList()): List<TideDay> {
+        if (weather.isNotEmpty()) {
+            return weather.take(7).map { forecast ->
+                TideDay(
+                    date = forecast.date,
+                    tides = emptyList(),
+                    weather = forecast,
+                    isTidesLoading = false,
+                    isWeatherLoading = false,
+                    tideSource = "NOAA CO-OPS tide predictions unavailable",
+                )
+            }
+        }
+
+        return listOf(
+            TideDay(
+                date = "Tides unavailable",
+                tides = emptyList(),
+                weather = null,
+                isWeatherLoading = false,
+                isTidesLoading = false,
+                tideSource = "NOAA CO-OPS tide predictions unavailable",
+            ),
+        )
+    }
+
+    private fun startStationDetailRequest(stationId: String): Long {
+        stationDetailJob?.cancel()
+        stationDetailRequestId += 1
+        activeStationDetailId = stationId
+        return stationDetailRequestId
+    }
+
+    private fun closeStationDetails() {
+        stationDetailJob?.cancel()
+        stationDetailJob = null
+        stationDetailRequestId += 1
+        activeStationDetailId = null
+        updateViewState {
+            copy(
+                listOfTideDays = null,
+                marineConditions = null,
+                isMarineConditionsLoading = false,
+                selectedStation = null,
+                isSelectedStationFavorite = false,
+                showEmptyState = stations.isEmpty() && isMapLoaded,
+            )
+        }
+    }
+
+    private fun updateStationDetailState(
+        requestId: Long,
+        stationId: String,
+        transform: MapViewState.() -> MapViewState,
+    ) {
+        if (!isActiveStationDetail(requestId, stationId)) return
+        _viewState.update { current ->
+            if (isActiveStationDetail(requestId, stationId)) {
+                transform(current)
+            } else {
+                current
+            }
+        }
+    }
+
+    private fun isActiveStationDetail(requestId: Long, stationId: String): Boolean {
+        return stationDetailRequestId == requestId && activeStationDetailId == stationId
     }
 
     private suspend fun handleMapMotion(isMoving: Boolean, bounds: LatLngBounds?) {
@@ -737,8 +832,8 @@ class MapViewModel(
 
     val viewState: StateFlow<MapViewState> = _viewState.asStateFlow()
 
-    private suspend fun updateViewState(viewState: MapViewState.() -> MapViewState) {
-        _viewState.emit(viewState.invoke(this.viewState.value))
+    private fun updateViewState(viewState: MapViewState.() -> MapViewState) {
+        _viewState.update { current -> viewState.invoke(current) }
     }
 
     companion object {

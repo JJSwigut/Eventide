@@ -21,6 +21,8 @@ For implementation work delegated by the Eventide orchestrator:
 3. Keep edits scoped to the assigned lane.
 4. Preserve unrelated user or worker changes.
 5. Run local verification before reporting completion.
+6. Treat branch creation, fetching refs, dependency setup, and code inspection as checkpoints, not terminal results.
+7. Report `blocked` only when a specific owner action, permission, credential, external state change, or unavailable verification environment prevents further work. Do not report `blocked` with `Decision needed: none`.
 
 Use these commands from the repository root:
 

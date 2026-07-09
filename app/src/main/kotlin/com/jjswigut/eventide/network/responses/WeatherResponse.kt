@@ -30,6 +30,8 @@ data class WeatherForecastResponse(
 @Serializable
 data class WeatherForecastProperties(
     val periods: List<WeatherPeriod>,
+    val generatedAt: String? = null,
+    val updateTime: String? = null,
 )
 
 /**

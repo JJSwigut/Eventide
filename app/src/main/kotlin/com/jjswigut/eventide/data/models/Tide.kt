@@ -22,6 +22,7 @@ data class TideDay(
     val sunMoonData: SunMoonData? = null,
     val isWeatherLoading: Boolean = false,
     val isTidesLoading: Boolean = false,
+    val tideSource: String = "NOAA CO-OPS tide prediction",
 )
 
 data class SunMoonData(

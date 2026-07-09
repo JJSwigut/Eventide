@@ -50,17 +50,11 @@ class NoaaRepositoryImpl(
     override suspend fun getTidesWithWeather(stationID: String): Either<List<TideDay>, GenericError> =
         coroutineScope {
             // Get the station to access its coordinates
-            val station =
-                getStationById(stationID) ?: return@coroutineScope Either.failure(DbError())
+            if (getStationById(stationID) == null) return@coroutineScope Either.failure(DbError())
 
             // Fetch tides and weather in parallel for better performance
             val tidesDeferred = async { getTidesForStation(stationID) }
-            val weatherDeferred = async {
-                fetchWeatherForStation(
-                    latitude = station.latLng.latitude,
-                    longitude = station.latLng.longitude,
-                )
-            }
+            val weatherDeferred = async { getWeatherForStation(stationID) }
 
             val tidesResult = tidesDeferred.await()
             val weatherResult = weatherDeferred.await()
@@ -76,6 +70,14 @@ class NoaaRepositoryImpl(
                 }
             }
         }
+
+    override suspend fun getWeatherForStation(stationID: String): Either<List<Weather>, GenericError> {
+        val station = getStationById(stationID) ?: return Either.failure(DbError())
+        return fetchWeatherForStation(
+            latitude = station.latLng.latitude,
+            longitude = station.latLng.longitude,
+        )
+    }
 
     override suspend fun getMarineConditionsForStation(stationID: String): Either<MarineConditions, GenericError> {
         val station = getStationById(stationID) ?: return Either.success(MarineConditions())
