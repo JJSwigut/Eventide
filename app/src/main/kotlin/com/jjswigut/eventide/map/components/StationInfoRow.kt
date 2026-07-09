@@ -43,6 +43,10 @@ import com.jjswigut.eventide.ui.theme.BackgroundDark
 import com.jjswigut.eventide.ui.theme.Primary
 import com.jjswigut.eventide.ui.theme.PrimaryDark
 import com.jjswigut.eventide.ui.theme.PrimaryLight
+import java.time.Duration
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private object StationInfoDesign {
@@ -153,6 +157,11 @@ private fun MarineSummary(
                 color = Color.White,
                 maxLines = 2,
             )
+            BodyText(
+                text = alert.sourceAttribution(),
+                color = Color.White.copy(alpha = 0.78f),
+                maxLines = 1,
+            )
         }
 
         if (chips.isNotEmpty()) {
@@ -184,39 +193,65 @@ private fun MarineChip(text: String) {
     )
 }
 
-private fun MarineConditions.toMarineChips(): List<String> {
+internal fun MarineConditions.toMarineChips(now: Instant = Instant.now()): List<String> {
     val chips = mutableListOf<String>()
-    observations.take(4).forEach { observation ->
-        chips += "${observation.label}: ${observation.value}"
-    }
     buoy?.let { buoy ->
         val distance = String.format(Locale.US, "%.0f", buoy.distanceMiles)
         val details = listOfNotNull(
             buoy.waveHeight?.let { "waves $it" },
             buoy.wind?.let { "wind $it" },
             buoy.waterTemperature?.let { "water $it" },
+            buoy.pressure?.let { "pressure $it" },
         ).joinToString(", ")
-        chips += if (details.isBlank()) {
-            "Buoy ${buoy.stationId}: ${distance}mi"
+        val source = listOfNotNull(
+            "${buoy.source} ${buoy.sourceType.lowercase(Locale.US)}",
+            buoy.observedAt.freshnessLabel(now, BUOY_STALE_AFTER),
+        ).joinToString(" - ")
+        val summary = if (details.isBlank()) {
+            "Buoy ${buoy.stationId} (${distance}mi)"
         } else {
-            "Buoy ${buoy.stationId}: $details"
+            "Buoy ${buoy.stationId} (${distance}mi): $details"
         }
+        chips += listOfNotNull(summary, source.takeIf { it.isNotBlank() }).joinToString(" - ")
     }
-    waveForecast?.let { forecast ->
-        val details = listOfNotNull(
-            forecast.waveHeight?.let { "waves $it" },
-            forecast.wavePeriod?.let { "period $it" },
-            forecast.seaSurfaceTemperature?.let { "SST $it" },
-        ).joinToString(", ")
-        if (details.isNotBlank()) {
-            chips += "${forecast.attribution}: $details"
-        }
+    observations.take(4).forEach { observation ->
+        chips += listOfNotNull(
+            "${observation.label}: ${observation.value}",
+            "${observation.source} ${observation.sourceType.lowercase(Locale.US)}",
+            observation.observedAt.freshnessLabel(now, OBSERVATION_STALE_AFTER),
+        ).joinToString(" - ")
     }
     if (alerts.size > 1) {
-        chips += "${alerts.size} active alerts"
+        chips += "${alerts.size} active NWS alerts"
     }
     return chips
 }
+
+private fun com.jjswigut.eventide.data.models.MarineAlert.sourceAttribution(): String {
+    val timing = listOfNotNull(
+        effectiveAt?.let { "from ${it.shortUtcLabel()}" },
+        expiresAt?.let { "until ${it.shortUtcLabel()}" },
+    ).joinToString(" ")
+    return listOf(source, timing.takeIf { it.isNotBlank() }).joinToString(" - ")
+}
+
+private fun Instant?.freshnessLabel(now: Instant, staleAfter: Duration): String? {
+    val observedAt = this ?: return null
+    val age = Duration.between(observedAt, now)
+    val freshness = if (age > staleAfter) "stale" else "current"
+    return "${observedAt.shortUtcLabel()} UTC $freshness"
+}
+
+private fun Instant.shortUtcLabel(): String {
+    return utcFormatter.format(this)
+}
+
+private val utcFormatter: DateTimeFormatter = DateTimeFormatter
+    .ofPattern("MMM d HH:mm", Locale.US)
+    .withZone(ZoneOffset.UTC)
+
+private val OBSERVATION_STALE_AFTER: Duration = Duration.ofHours(6)
+private val BUOY_STALE_AFTER: Duration = Duration.ofHours(3)
 
 @Composable
 private fun FavoriteButton(

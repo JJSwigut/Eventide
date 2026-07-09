@@ -3,8 +3,8 @@ package com.jjswigut.eventide.network.service
 import com.jjswigut.eventide.data.models.Weather
 import com.jjswigut.eventide.data.models.WeatherGrid
 import com.jjswigut.eventide.network.client.WeatherServiceClient
+import com.jjswigut.eventide.network.responses.WeatherForecastProperties
 import com.jjswigut.eventide.network.responses.WeatherForecastResponse
-import com.jjswigut.eventide.network.responses.WeatherPeriod
 import com.jjswigut.eventide.network.responses.WeatherPointsResponse
 import com.jjswigut.eventide.network.utils.Either
 import com.jjswigut.eventide.network.utils.NetworkError
@@ -12,6 +12,7 @@ import com.jjswigut.eventide.utils.GenericError
 import com.jjswigut.eventide.utils.UnknownError
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ResponseException
+import java.time.OffsetDateTime
 
 class WeatherServiceImpl(
     private val client: WeatherServiceClient,
@@ -44,7 +45,7 @@ class WeatherServiceImpl(
                 gridY = grid.gridY,
             ).body<WeatherForecastResponse>()
 
-            convertPeriodsToDaily(response.properties.periods)
+            convertPeriodsToDaily(response.properties)
         }.fold(
             onSuccess = { weather -> Either.success(weather) },
             onFailure = { throwable -> Either.failure(handleError(throwable)) },
@@ -56,7 +57,9 @@ class WeatherServiceImpl(
      * Starts from the first daytime period and pairs each day with its following night.
      * This ensures correct day/night pairing regardless of what time the forecast is fetched.
      */
-    private fun convertPeriodsToDaily(periods: List<WeatherPeriod>): List<Weather> {
+    internal fun convertPeriodsToDaily(properties: WeatherForecastProperties): List<Weather> {
+        val periods = properties.periods
+        val issuedAt = parseOffsetDateTime(properties.updateTime) ?: parseOffsetDateTime(properties.generatedAt)
         val dailyWeather = mutableListOf<Weather>()
 
         // Find the first daytime period to ensure proper day/night pairing
@@ -77,6 +80,9 @@ class WeatherServiceImpl(
                     conditions = dayPeriod.shortForecast,
                     iconUrl = dayPeriod.icon,
                     windSpeed = dayPeriod.windSpeed,
+                    forecastStart = parseOffsetDateTime(dayPeriod.startTime),
+                    forecastEnd = parseOffsetDateTime((nightPeriod ?: dayPeriod).endTime),
+                    forecastIssuedAt = issuedAt,
                 ),
             )
 
@@ -85,6 +91,10 @@ class WeatherServiceImpl(
         }
 
         return dailyWeather
+    }
+
+    private fun parseOffsetDateTime(value: String?): OffsetDateTime? {
+        return value?.let { runCatching { OffsetDateTime.parse(it) }.getOrNull() }
     }
 
     private fun handleError(throwable: Throwable): GenericError {

@@ -6,7 +6,6 @@ import com.jjswigut.eventide.data.models.TideValue.High
 import com.jjswigut.eventide.data.models.TideValue.Low
 import com.jjswigut.eventide.network.responses.TidesResponse.TideDTO
 import kotlinx.serialization.Serializable
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -23,28 +22,35 @@ data class TidesResponse(
     )
 
     fun toListOfTideDays(): List<TideDay> {
-        return predictions.groupBy {
-            LocalDate.parse(it.t, dateTimeParser)
-        }.map { (date, tideDTOS) ->
+        return predictions.mapNotNull { prediction ->
+            prediction.toModelOrNull()?.let { tide ->
+                tide.dateTime?.toLocalDate()?.let { date -> date to tide }
+            }
+        }.groupBy(
+            keySelector = { (date, _) -> date },
+            valueTransform = { (_, tide) -> tide },
+        ).toSortedMap().map { (date, tides) ->
             TideDay(
                 date = date.format(dayFormatter),
-                tides = tideDTOS.map { it.toModel() },
+                tides = tides,
                 dateValue = date,
             )
         }
     }
 }
 
-private fun TideDTO.toModel(): Tide {
-    val dateTime = LocalDateTime.parse(t, dateTimeParser)
-    val heightFeet = v.toDoubleOrNull()?.metersToFeet()
-    return Tide(
-        time = dateTime.format(timeFormatter).lowercase(Locale.US),
-        tideValue = if (type == "H") High else Low,
-        height = heightFeet?.formatFeet() ?: v.formatMetersFallback(),
-        dateTime = dateTime,
-        heightFeet = heightFeet,
-    )
+private fun TideDTO.toModelOrNull(): Tide? {
+    return runCatching {
+        val dateTime = LocalDateTime.parse(t, dateTimeParser)
+        val heightFeet = v.toDoubleOrNull()?.metersToFeet()
+        Tide(
+            time = dateTime.format(timeFormatter).lowercase(Locale.US),
+            tideValue = if (type == "H") High else Low,
+            height = heightFeet?.formatFeet() ?: v.formatMetersFallback(),
+            dateTime = dateTime,
+            heightFeet = heightFeet,
+        )
+    }.getOrNull()
 }
 
 private fun Double.metersToFeet(): Double = this * METERS_TO_FEET

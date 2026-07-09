@@ -2,6 +2,7 @@ package com.jjswigut.eventide
 
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.POST_NOTIFICATIONS
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -19,6 +20,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import com.jjswigut.eventide.map.MapScreen
+import com.jjswigut.eventide.smoke.SmokeStationDetailScreen
 import com.jjswigut.eventide.ui.theme.EventideTheme
 
 class MainActivity : ComponentActivity() {
@@ -27,6 +29,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        if (shouldShowSmokeFixture()) {
+            setupSmokeScreen()
+            return
+        }
         requestLocationPermission()
     }
 
@@ -107,5 +113,27 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun setupSmokeScreen() {
+        setContent {
+            EventideTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    SmokeStationDetailScreen()
+                }
+            }
+        }
+    }
+
+    private fun shouldShowSmokeFixture(): Boolean {
+        val isDebuggable = applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
+        return isDebuggable && intent.getBooleanExtra(EXTRA_SMOKE_FIXTURE, false)
+    }
+
+    companion object {
+        const val EXTRA_SMOKE_FIXTURE = "eventide.SMOKE_FIXTURE"
     }
 }

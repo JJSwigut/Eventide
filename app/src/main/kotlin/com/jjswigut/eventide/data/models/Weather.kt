@@ -1,5 +1,7 @@
 package com.jjswigut.eventide.data.models
 
+import java.time.OffsetDateTime
+
 /**
  * Simplified weather model for UI display.
  * Represents weather for a single day.
@@ -11,6 +13,11 @@ data class Weather(
     val conditions: String, // e.g., "Partly Cloudy"
     val iconUrl: String, // URL to weather icon
     val windSpeed: String, // e.g., "5 to 10 mph"
+    val forecastStart: OffsetDateTime? = null,
+    val forecastEnd: OffsetDateTime? = null,
+    val forecastIssuedAt: OffsetDateTime? = null,
+    val source: String = "National Weather Service",
+    val sourceType: String = "Forecast",
 ) {
     /**
      * Gets an emoji representation of the weather conditions.

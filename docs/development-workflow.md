@@ -49,11 +49,13 @@ When the owner says "cut a release":
 
 1. Orchestrator confirms release permission and reads the ledger.
 2. Orchestrator verifies no active worker has unmerged release-critical work.
-3. Orchestrator runs `tools/eventide_release_check.sh` from `develop`.
-4. Orchestrator creates a release PR from `develop` into `main`.
-5. PR checks run for `main`.
-6. After explicit owner approval, orchestrator merges the PR.
-7. The push to `main` triggers `.github/workflows/android-release.yml`, which builds the signed AAB, creates a GitHub release, and uploads to Google Play.
+3. Orchestrator confirms `release-notes/<versionName>.md` exists and is suitable for GitHub and Google Play.
+4. Owner reviews and updates Google Play Data Safety disclosures before publishing if app data flows, permissions, or third-party services changed.
+5. Orchestrator runs `tools/eventide_release_check.sh` from `develop`.
+6. Orchestrator creates a release PR from `develop` into `main`.
+7. PR checks run for `main`.
+8. After explicit owner approval, orchestrator merges the PR.
+9. The push to `main` triggers `.github/workflows/android-release.yml`, which builds the signed AAB, creates a GitHub release, and uploads to Google Play.
 
 ## Local Verification
 
@@ -78,11 +80,15 @@ Run:
 tools/eventide_smoke.sh
 ```
 
-The smoke script prefers an already connected Android target. If none is connected and the `EventideSmoke` AVD exists, it starts that emulator headlessly, waits for boot, installs the debug APK, grants runtime permissions where possible, launches Eventide, and captures a screenshot under `build/smoke/`.
+The smoke script prefers an already connected Android target. If none is connected and the `EventideSmoke` AVD exists, it starts that emulator headlessly, waits for boot, installs the debug APK, grants runtime permissions where possible, launches Eventide, asserts a rendered product state, and captures a screenshot under `build/smoke/`.
+
+By default, `tools/eventide_smoke.sh` launches a debuggable-only fixture with `eventide.SMOKE_FIXTURE=true`. The fixture renders the real station-detail components with deterministic tide, NDBC buoy, and NWS forecast content so workers and release checks do not depend on live upstream marine availability. The script waits for the fixture entry point, opens the station detail, asserts marine/tide/forecast text, verifies the app process is still running, and checks the screenshot is not black or mostly blank before reporting the screenshot path.
 
 Set `ANDROID_SERIAL` to force a specific target.
 
 Set `EVENTIDE_FORCE_EMULATOR=1` to force the `EventideSmoke` emulator even when a physical device is connected. Set `EVENTIDE_STOP_EMULATOR=1` to shut down an emulator started by the script after the screenshot is captured.
+
+Set `EVENTIDE_SMOKE_FIXTURE=0` only when intentionally smoke-testing the normal live map launch path.
 
 ## Release Check
 

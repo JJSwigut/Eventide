@@ -4,16 +4,16 @@ import com.jjswigut.eventide.data.models.BuoyConditions
 import com.jjswigut.eventide.data.models.MarineAlert
 import com.jjswigut.eventide.data.models.MarineConditions
 import com.jjswigut.eventide.data.models.MarineObservation
-import com.jjswigut.eventide.data.models.WaveForecast
 import com.jjswigut.eventide.network.client.MarineServiceClient
 import com.jjswigut.eventide.network.responses.NwsAlertsResponse
-import com.jjswigut.eventide.network.responses.OpenMeteoMarineResponse
 import com.jjswigut.eventide.network.utils.Either
 import com.jjswigut.eventide.utils.GenericError
 import io.ktor.client.call.body
 import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -22,6 +22,12 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.w3c.dom.Element
 import java.io.ByteArrayInputStream
+import java.time.Clock
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.math.atan2
@@ -32,7 +38,11 @@ import kotlin.math.sqrt
 
 class MarineServiceImpl(
     private val client: MarineServiceClient,
+    private val clock: Clock = Clock.systemUTC(),
 ) : MarineService {
+    private val activeStationsMutex = Mutex()
+    private var activeStationsCache: ActiveStationsCache? = null
+
     override suspend fun getMarineConditions(
         stationId: String,
         latitude: Double,
@@ -41,14 +51,12 @@ class MarineServiceImpl(
         val coopsDeferred = async { fetchCoopsObservations(stationId) }
         val alertsDeferred = async { fetchAlerts(latitude, longitude) }
         val buoyDeferred = async { fetchNearestBuoy(latitude, longitude) }
-        val waveForecastDeferred = async { fetchOpenMeteoWaveForecast(latitude, longitude) }
 
         Either.success(
             MarineConditions(
                 observations = coopsDeferred.await(),
                 alerts = alertsDeferred.await(),
                 buoy = buoyDeferred.await(),
-                waveForecast = waveForecastDeferred.await(),
             ),
         )
     }
@@ -81,8 +89,13 @@ class MarineServiceImpl(
                         event = event,
                         headline = feature.properties.headline?.takeIf { it.isNotBlank() } ?: event,
                         severity = feature.properties.severity?.takeIf { it.isNotBlank() } ?: "Unknown",
+                        effectiveAt = parseNwsTimestamp(feature.properties.onset)
+                            ?: parseNwsTimestamp(feature.properties.effective),
+                        expiresAt = parseNwsTimestamp(feature.properties.ends)
+                            ?: parseNwsTimestamp(feature.properties.expires),
                     )
                 }
+                .filterNot { alert -> alert.expiresAt?.isBefore(Instant.now(clock)) == true }
                 .take(MAX_ALERTS)
         }.getOrDefault(emptyList())
     }
@@ -92,7 +105,7 @@ class MarineServiceImpl(
         longitude: Double,
     ): BuoyConditions? {
         return runCatching {
-            val activeStations = parseActiveStations(client.getNdbcActiveStations().bodyAsText())
+            val activeStations = getActiveStations()
             val nearest = activeStations
                 .filter { it.hasMetData }
                 .map { station ->
@@ -111,32 +124,38 @@ class MarineServiceImpl(
         }.getOrNull()
     }
 
-    private suspend fun fetchOpenMeteoWaveForecast(
-        latitude: Double,
-        longitude: Double,
-    ): WaveForecast? {
-        // Open-Meteo Marine is a no-key fallback for non-commercial use. UI attribution is required.
-        return runCatching {
-            val current = client.getOpenMeteoMarine(latitude, longitude)
-                .body<OpenMeteoMarineResponse>()
-                .current
-                ?: return null
+    private suspend fun getActiveStations(): List<NdbcStation> {
+        val now = Instant.now(clock)
+        return activeStationsMutex.withLock {
+            activeStationsCache?.takeIf { now.isBefore(it.expiresAt) }?.let { return@withLock it.stations }
 
-            WaveForecast(
-                waveHeight = current.waveHeight?.formatFeet(),
-                wavePeriod = current.wavePeriod?.formatSeconds(),
-                seaSurfaceTemperature = current.seaSurfaceTemperature?.formatFahrenheit(),
-            ).takeIf { it.waveHeight != null || it.wavePeriod != null || it.seaSurfaceTemperature != null }
-        }.getOrNull()
+            val fallback = activeStationsCache?.stations.orEmpty()
+            val stations = runCatching {
+                parseActiveStations(client.getNdbcActiveStations().bodyAsText())
+            }.getOrDefault(fallback)
+
+            if (stations.isNotEmpty()) {
+                activeStationsCache = ActiveStationsCache(
+                    stations = stations,
+                    expiresAt = now.plusSeconds(ACTIVE_STATIONS_CACHE_SECONDS),
+                )
+            }
+            stations
+        }
     }
 
     companion object {
         private const val MAX_ALERTS = 3
         private const val MAX_BUOY_DISTANCE_MILES = 150.0
+        private const val ACTIVE_STATIONS_CACHE_SECONDS = 12 * 60 * 60L
 
         private val json = Json {
             ignoreUnknownKeys = true
         }
+        private val coopsTimestampFormatters = listOf(
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.US),
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.US),
+        )
 
         private val COOPS_PRODUCTS = listOf(
             CoopsProduct("water_temperature", "Water") { data -> data.stringValue("v")?.formatObservationValue("°F") },
@@ -216,6 +235,7 @@ class MarineServiceImpl(
                 wavePeriod = value("DPD")?.formatSeconds(),
                 waterTemperature = value("WTMP")?.celsiusToFahrenheit()?.formatFahrenheit(),
                 pressure = value("PRES")?.formatPressure(),
+                observedAt = parseNdbcTimestamp(header, latestData),
             ).takeIf {
                 it.wind != null ||
                     it.waveHeight != null ||
@@ -223,6 +243,47 @@ class MarineServiceImpl(
                     it.waterTemperature != null ||
                     it.pressure != null
             }
+        }
+
+        internal fun parseCoopsTimestamp(value: String?): Instant? {
+            val trimmed = value?.trim()?.takeIf { it.isNotBlank() } ?: return null
+            return coopsTimestampFormatters.firstNotNullOfOrNull { formatter ->
+                runCatching {
+                    LocalDateTime.parse(trimmed, formatter).toInstant(ZoneOffset.UTC)
+                }.getOrNull()
+            } ?: parseNwsTimestamp(trimmed)
+        }
+
+        internal fun parseNdbcTimestamp(
+            header: List<String>,
+            row: List<String>,
+        ): Instant? {
+            fun token(vararg names: String): String? {
+                val exactIndex = header.indexOfFirst { headerName ->
+                    names.any { name -> headerName == name }
+                }
+                val index = exactIndex.takeIf { it >= 0 } ?: header.indexOfFirst { headerName ->
+                    names.any { name -> headerName.equals(name, ignoreCase = true) }
+                }
+                return row.getOrNull(index.takeIf { it >= 0 } ?: return null)
+            }
+
+            val year = token("YY", "yr")?.toIntOrNull()?.let { if (it < 100) 2000 + it else it } ?: return null
+            val month = token("MM", "mo")?.toIntOrNull() ?: return null
+            val day = token("DD", "dy")?.toIntOrNull() ?: return null
+            val hour = token("hh", "hr")?.toIntOrNull() ?: return null
+            val minute = token("mm", "mn")?.toIntOrNull() ?: return null
+
+            return runCatching {
+                LocalDateTime.of(year, month, day, hour, minute)
+                    .toInstant(ZoneOffset.UTC)
+            }.getOrNull()
+        }
+
+        internal fun parseNwsTimestamp(value: String?): Instant? {
+            val trimmed = value?.trim()?.takeIf { it.isNotBlank() } ?: return null
+            return runCatching { Instant.parse(trimmed) }.getOrNull()
+                ?: runCatching { OffsetDateTime.parse(trimmed).toInstant() }.getOrNull()
         }
 
         private fun CoopsProduct.toObservation(text: String): MarineObservation? {
@@ -234,7 +295,11 @@ class MarineServiceImpl(
                     ?.jsonObject
             }.getOrNull() ?: return null
             val value = formatter(data) ?: return null
-            return MarineObservation(label = label, value = value)
+            return MarineObservation(
+                label = label,
+                value = value,
+                observedAt = parseCoopsTimestamp(data.stringValue("t")),
+            )
         }
 
         private fun formatCoopsWind(data: JsonObject): String? {
@@ -312,6 +377,11 @@ internal data class NdbcStation(
     val latitude: Double,
     val longitude: Double,
     val hasMetData: Boolean,
+)
+
+private data class ActiveStationsCache(
+    val stations: List<NdbcStation>,
+    val expiresAt: Instant,
 )
 
 private data class CoopsProduct(
