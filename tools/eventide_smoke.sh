@@ -308,10 +308,12 @@ if [[ "${SMOKE_FIXTURE}" == "1" ]]; then
   sleep 1
   tap_ui_text_center "Open Smoke Station"
   wait_for_ui_text "Marine conditions" "station detail marine panel rendered"
-  wait_for_ui_text "Buoy 44060 (12mi)" "deterministic NDBC buoy content rendered with distance"
+  wait_for_ui_text "Nearby buoy 44060" "deterministic NDBC buoy content rendered"
+  wait_for_ui_text "12 mi" "deterministic NDBC buoy distance rendered"
+  wait_for_ui_text "Waves" "structured marine metric rows rendered"
   wait_for_ui_text "Tides" "station detail tide section rendered"
   wait_for_ui_text "1:14am" "deterministic tide content rendered"
-  wait_for_ui_text "National Weather Service forecast" "deterministic weather forecast attribution rendered"
+  wait_for_ui_text "National Weather Service" "deterministic weather attribution rendered"
 else
   adb -s "${ANDROID_SERIAL}" shell am start -W -n "${MAIN_ACTIVITY}"
   wait_for_ui_text "Eventide" "normal app launched"

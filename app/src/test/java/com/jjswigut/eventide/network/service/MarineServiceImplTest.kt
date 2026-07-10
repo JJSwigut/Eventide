@@ -1,6 +1,7 @@
 package com.jjswigut.eventide.network.service
 
 import com.jjswigut.eventide.network.client.MarineServiceClient
+import com.jjswigut.eventide.network.utils.Either
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
@@ -122,13 +123,13 @@ class MarineServiceImplTest {
                             content = """
                                 <?xml version="1.0" encoding="utf-8"?>
                                 <stations>
-                                  <station id="44060" lat="41.263" lon="-72.067" name="Eastern Long Island Sound" met="y"/>
+                                  <station id="nlhc3" lat="41.263" lon="-72.067" name="New London" met="y"/>
                                 </stations>
                             """.trimIndent(),
                             headers = headersOf(HttpHeaders.ContentType, "application/xml"),
                         )
                     }
-                    url.endsWith("/data/realtime2/44060.txt") -> respond(
+                    url.endsWith("/data/realtime2/NLHC3.txt") -> respond(
                         content = """
                             #YY  MM DD hh mm WDIR WSPD GST WVHT DPD PRES WTMP
                             2026 07 07 18 50 220  5.0 7.0 1.2 8 1013.4 18.1
@@ -148,9 +149,11 @@ class MarineServiceImplTest {
         )
         val service = MarineServiceImpl(client)
 
-        service.getMarineConditions("8461490", 41.3, -72.0)
+        val result = service.getMarineConditions("8461490", 41.3, -72.0)
         service.getMarineConditions("8461490", 41.3, -72.0)
 
+        require(result is Either.Success)
+        assertEquals("NLHC3", result.value.buoy?.stationId)
         assertEquals(1, activeStationsRequests.get())
     }
 }
