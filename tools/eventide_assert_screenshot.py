@@ -3,6 +3,12 @@ import struct
 import sys
 import zlib
 
+BLACK_OCCLUSION_LUMINANCE = 18
+BLACK_OCCLUSION_MAX_CHANNEL = 28
+BLACK_OCCLUSION_MIN_AREA = 20_000
+BLACK_OCCLUSION_MIN_WIDTH = 120
+BLACK_OCCLUSION_MIN_HEIGHT = 120
+
 
 def read_chunks(data):
     if data[:8] != b"\x89PNG\r\n\x1a\n":
@@ -78,6 +84,92 @@ def decode_png(path):
     return width, height, color_type, bytes_per_pixel, rows
 
 
+def pixel_rgb(row, offset, color_type):
+    if color_type == 0:
+        return row[offset], row[offset], row[offset]
+    if color_type == 4:
+        return row[offset], row[offset], row[offset]
+    return row[offset], row[offset + 1], row[offset + 2]
+
+
+def is_near_black(red, green, blue):
+    luminance = (0.2126 * red) + (0.7152 * green) + (0.0722 * blue)
+    return luminance <= BLACK_OCCLUSION_LUMINANCE and max(red, green, blue) <= BLACK_OCCLUSION_MAX_CHANNEL
+
+
+def find_black_occlusion(width, height, color_type, bytes_per_pixel, rows):
+    black_pixels = bytearray(width * height)
+    index = 0
+    for row in rows:
+        for offset in range(0, len(row), bytes_per_pixel):
+            red, green, blue = pixel_rgb(row, offset, color_type)
+            if is_near_black(red, green, blue):
+                black_pixels[index] = 1
+            index += 1
+
+    visited = bytearray(width * height)
+    largest = None
+    for start in range(width * height):
+        if visited[start] or not black_pixels[start]:
+            continue
+
+        stack = [start]
+        visited[start] = 1
+        area = 0
+        min_x = max_x = start % width
+        min_y = max_y = start // width
+
+        while stack:
+            current = stack.pop()
+            area += 1
+            x = current % width
+            y = current // width
+            min_x = min(min_x, x)
+            max_x = max(max_x, x)
+            min_y = min(min_y, y)
+            max_y = max(max_y, y)
+
+            if x > 0:
+                neighbor = current - 1
+                if black_pixels[neighbor] and not visited[neighbor]:
+                    visited[neighbor] = 1
+                    stack.append(neighbor)
+            if x < width - 1:
+                neighbor = current + 1
+                if black_pixels[neighbor] and not visited[neighbor]:
+                    visited[neighbor] = 1
+                    stack.append(neighbor)
+            if y > 0:
+                neighbor = current - width
+                if black_pixels[neighbor] and not visited[neighbor]:
+                    visited[neighbor] = 1
+                    stack.append(neighbor)
+            if y < height - 1:
+                neighbor = current + width
+                if black_pixels[neighbor] and not visited[neighbor]:
+                    visited[neighbor] = 1
+                    stack.append(neighbor)
+
+        component_width = max_x - min_x + 1
+        component_height = max_y - min_y + 1
+        if largest is None or area > largest["area"]:
+            largest = {
+                "area": area,
+                "width": component_width,
+                "height": component_height,
+                "x": min_x,
+                "y": min_y,
+            }
+        if (
+            area >= BLACK_OCCLUSION_MIN_AREA
+            and component_width >= BLACK_OCCLUSION_MIN_WIDTH
+            and component_height >= BLACK_OCCLUSION_MIN_HEIGHT
+        ):
+            return largest
+
+    return None
+
+
 def main(path):
     width, height, color_type, bytes_per_pixel, rows = decode_png(path)
     total = width * height
@@ -108,6 +200,14 @@ def main(path):
         raise ValueError(f"screenshot is mostly dark or blank: non_dark_ratio={non_dark_ratio:.3f}")
     if len(colors) < 8:
         raise ValueError(f"screenshot has too little visual variation: colors={len(colors)}")
+    black_occlusion = find_black_occlusion(width, height, color_type, bytes_per_pixel, rows)
+    if black_occlusion is not None:
+        raise ValueError(
+            "screenshot contains a large near-black occlusion: "
+            f"area={black_occlusion['area']}, "
+            f"bounds={black_occlusion['width']}x{black_occlusion['height']}"
+            f"+{black_occlusion['x']}+{black_occlusion['y']}"
+        )
 
     print(
         f"Screenshot check passed: {width}x{height}, "
