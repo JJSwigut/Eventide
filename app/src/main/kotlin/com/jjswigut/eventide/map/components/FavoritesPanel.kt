@@ -23,6 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -32,6 +34,7 @@ import com.jjswigut.eventide.R
 import com.jjswigut.eventide.data.models.Station
 import com.jjswigut.eventide.data.models.TideAlertFilter
 import com.jjswigut.eventide.data.models.TideAlertPreference
+import com.jjswigut.eventide.ui.components.rememberEventideEntranceProgress
 import com.jjswigut.eventide.ui.theme.BackgroundDark
 import com.jjswigut.eventide.ui.theme.LightText
 import com.jjswigut.eventide.ui.theme.Primary
@@ -46,6 +49,7 @@ private object FavoritesPanelDesign {
     val rowSpacing = 6.dp
     val maxHeight = 340.dp
     val iconSize = 24.dp
+    val panelEntranceOffset = 18.dp
 }
 
 @Composable
@@ -61,6 +65,8 @@ fun FavoritesPanel(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val density = LocalDensity.current
+    val entranceProgress = rememberEventideEntranceProgress("favorites")
     val gradientBrush = Brush.verticalGradient(
         colors = listOf(
             BackgroundDark.copy(alpha = 0.96f),
@@ -73,6 +79,12 @@ fun FavoritesPanel(
             .padding(16.dp)
             .fillMaxWidth()
             .heightIn(max = FavoritesPanelDesign.maxHeight)
+            .graphicsLayer {
+                alpha = entranceProgress
+                translationY = with(density) {
+                    FavoritesPanelDesign.panelEntranceOffset.toPx()
+                } * (1f - entranceProgress)
+            }
             .background(
                 brush = gradientBrush,
                 shape = RoundedCornerShape(FavoritesPanelDesign.cornerRadius),
@@ -256,6 +268,7 @@ private fun SelectableChip(
     Box(
         modifier = Modifier
             .widthIn(min = 52.dp)
+            .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(FavoritesPanelDesign.cornerRadius))
             .clickable(onClick = onClick)
             .background(
@@ -285,7 +298,7 @@ private val LEAD_TIME_OPTIONS = listOf(30, 60, 120)
 private fun ClosePanelButton(onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .size(36.dp)
+            .size(48.dp)
             .clip(RoundedCornerShape(FavoritesPanelDesign.cornerRadius))
             .clickable(onClick = onClick)
             .background(PrimaryLight.copy(alpha = 0.22f)),

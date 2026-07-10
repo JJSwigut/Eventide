@@ -20,6 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -31,6 +33,7 @@ import com.jjswigut.eventide.settings.AppSettings
 import com.jjswigut.eventide.settings.TempUnit
 import com.jjswigut.eventide.settings.TideUnit
 import com.jjswigut.eventide.settings.TimeFormat
+import com.jjswigut.eventide.ui.components.rememberEventideEntranceProgress
 import com.jjswigut.eventide.ui.theme.BackgroundDark
 import com.jjswigut.eventide.ui.theme.LightText
 import com.jjswigut.eventide.ui.theme.PrimaryDark
@@ -42,6 +45,7 @@ private object SettingsPanelDesign {
     val panelPadding = 16.dp
     val maxHeight = 420.dp
     val iconSize = 24.dp
+    val panelEntranceOffset = 18.dp
 }
 
 @Composable
@@ -55,6 +59,8 @@ fun SettingsPanel(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val density = LocalDensity.current
+    val entranceProgress = rememberEventideEntranceProgress("settings")
     val gradientBrush = Brush.verticalGradient(
         colors = listOf(
             BackgroundDark.copy(alpha = 0.96f),
@@ -67,6 +73,12 @@ fun SettingsPanel(
             .padding(16.dp)
             .fillMaxWidth()
             .heightIn(max = SettingsPanelDesign.maxHeight)
+            .graphicsLayer {
+                alpha = entranceProgress
+                translationY = with(density) {
+                    SettingsPanelDesign.panelEntranceOffset.toPx()
+                } * (1f - entranceProgress)
+            }
             .background(
                 brush = gradientBrush,
                 shape = RoundedCornerShape(SettingsPanelDesign.cornerRadius),
@@ -186,6 +198,7 @@ private fun SelectableChip(
     Box(
         modifier = Modifier
             .widthIn(min = 64.dp)
+            .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(SettingsPanelDesign.cornerRadius))
             .clickable(onClick = onClick)
             .background(
@@ -213,7 +226,7 @@ private fun SelectableChip(
 private fun ClosePanelButton(onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .size(36.dp)
+            .size(48.dp)
             .clip(RoundedCornerShape(SettingsPanelDesign.cornerRadius))
             .clickable(onClick = onClick)
             .background(PrimaryLight.copy(alpha = 0.22f)),

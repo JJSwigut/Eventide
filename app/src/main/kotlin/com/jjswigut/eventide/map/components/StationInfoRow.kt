@@ -1,5 +1,7 @@
 package com.jjswigut.eventide.map.components
 
+import android.view.HapticFeedbackConstants
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,14 +20,22 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -37,8 +47,11 @@ import com.jjswigut.eventide.map.MapAction
 import com.jjswigut.eventide.settings.AppSettings
 import com.jjswigut.eventide.ui.components.Action
 import com.jjswigut.eventide.ui.components.BodyText
+import com.jjswigut.eventide.ui.components.EventideMotion
 import com.jjswigut.eventide.ui.components.SectionTitleText
 import com.jjswigut.eventide.ui.components.ShimmerLoading
+import com.jjswigut.eventide.ui.components.rememberEventideEntranceProgress
+import com.jjswigut.eventide.ui.components.rememberEventideMotionEnabled
 import com.jjswigut.eventide.ui.theme.BackgroundDark
 import com.jjswigut.eventide.ui.theme.Primary
 import com.jjswigut.eventide.ui.theme.PrimaryDark
@@ -74,7 +87,17 @@ fun StationInfoRow(
     settings: AppSettings,
     actionHandler: (Action) -> Unit,
 ) {
-    Column(modifier = modifier) {
+    val density = LocalDensity.current
+    val entranceProgress = rememberEventideEntranceProgress(station?.id ?: list.firstOrNull()?.date)
+
+    Column(
+        modifier = modifier.graphicsLayer {
+            alpha = entranceProgress
+            scaleX = DETAIL_MIN_SCALE + ((1f - DETAIL_MIN_SCALE) * entranceProgress)
+            scaleY = DETAIL_MIN_SCALE + ((1f - DETAIL_MIN_SCALE) * entranceProgress)
+            translationY = with(density) { DETAIL_ENTRANCE_OFFSET.toPx() } * (1f - entranceProgress)
+        },
+    ) {
         Row(
             modifier = Modifier.align(Alignment.End),
         ) {
@@ -258,9 +281,35 @@ private fun FavoriteButton(
     isFavorite: Boolean,
     onClick: () -> Unit,
 ) {
+    val motionEnabled = rememberEventideMotionEnabled()
+    val pulseScale = remember { Animatable(1f) }
+    var hasObservedState by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isFavorite, motionEnabled) {
+        if (!hasObservedState) {
+            hasObservedState = true
+            pulseScale.snapTo(1f)
+            return@LaunchedEffect
+        }
+
+        if (!motionEnabled) {
+            pulseScale.snapTo(1f)
+            return@LaunchedEffect
+        }
+
+        pulseScale.snapTo(0.94f)
+        pulseScale.animateTo(1.12f, EventideMotion.confirmationSpring)
+        pulseScale.animateTo(1f, EventideMotion.directSpring)
+    }
+
     HeaderButton(
+        modifier = Modifier.graphicsLayer {
+            scaleX = pulseScale.value
+            scaleY = pulseScale.value
+        },
         iconRes = if (isFavorite) R.drawable.star_filled else R.drawable.star_outline,
         contentDescription = if (isFavorite) "Remove favorite" else "Save favorite",
+        hapticFeedback = true,
         onClick = onClick,
     )
 }
@@ -283,8 +332,10 @@ private fun HeaderButton(
     modifier: Modifier = Modifier,
     iconRes: Int,
     contentDescription: String,
+    hapticFeedback: Boolean = false,
     onClick: () -> Unit,
 ) {
+    val view = LocalView.current
     val gradientBrush = Brush.radialGradient(
         colors = listOf(
             PrimaryLight,
@@ -311,7 +362,12 @@ private fun HeaderButton(
                 shape = RoundedCornerShape(StationInfoDesign.closeButtonCornerRadius),
             )
             .clip(shape = RoundedCornerShape(StationInfoDesign.closeButtonCornerRadius))
-            .clickable(onClick = onClick),
+            .clickable(role = Role.Button) {
+                if (hapticFeedback) {
+                    view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                }
+                onClick()
+            },
     ) {
         Image(
             painter = painterResource(id = iconRes),
@@ -320,6 +376,9 @@ private fun HeaderButton(
         )
     }
 }
+
+private val DETAIL_ENTRANCE_OFFSET = 22.dp
+private const val DETAIL_MIN_SCALE = 0.965f
 
 @Composable
 private fun TideCardList(
