@@ -17,26 +17,24 @@ class TideGraphTest {
     @Test
     fun `high tide labels keep both lines above the curve`() {
         val firstBaseline = tideLabelFirstBaseline(
-            centerY = 120f,
             isHigh = true,
-            topBound = 10f,
-            bottomBound = 220f,
+            graphTop = 100f,
+            graphBottom = 220f,
         )
 
-        assertEquals(86f, firstBaseline)
-        assertTrue(firstBaseline + 24f < 120f)
+        assertEquals(66f, firstBaseline)
+        assertTrue(firstBaseline + 24f < 100f)
     }
 
     @Test
     fun `low tide labels keep both lines below the curve`() {
         val firstBaseline = tideLabelFirstBaseline(
-            centerY = 80f,
             isHigh = false,
-            topBound = 10f,
-            bottomBound = 220f,
+            graphTop = 100f,
+            graphBottom = 220f,
         )
 
-        assertEquals(114f, firstBaseline)
-        assertTrue(firstBaseline > 80f)
+        assertEquals(254f, firstBaseline)
+        assertTrue(firstBaseline - 24f > 220f)
     }
 }
