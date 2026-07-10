@@ -260,13 +260,6 @@ private fun TidesSection(
             ),
             text = "Tides",
         )
-        BodyText(
-            modifier = Modifier.padding(horizontal = 8.dp),
-            text = day.tideSource,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-        )
-
         if (day.isTidesLoading) {
             Column(
                 modifier = Modifier

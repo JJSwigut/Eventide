@@ -100,7 +100,7 @@ private val listOfButtons = persistentListOf(
     ),
     MenuItem(
         text = "Clouds",
-        iconRes = R.drawable.weather_overlay,
+        iconRes = R.drawable.cloud_overlay,
         action = ToggleSatelliteOverlay,
     ),
 )

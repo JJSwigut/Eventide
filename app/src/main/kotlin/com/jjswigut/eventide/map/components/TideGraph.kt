@@ -1,5 +1,6 @@
 package com.jjswigut.eventide.map.components
 
+import android.graphics.Paint
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
@@ -75,8 +76,8 @@ fun TideGraph(
         val reveal = revealProgress.value.coerceIn(0f, 1f)
         val leftPadding = 32.dp.toPx()
         val rightPadding = 12.dp.toPx()
-        val topPadding = 14.dp.toPx()
-        val bottomPadding = 28.dp.toPx()
+        val topPadding = 32.dp.toPx()
+        val bottomPadding = 40.dp.toPx()
         val graphWidth = size.width - leftPadding - rightPadding
         val graphHeight = size.height - topPadding - bottomPadding
         if (graphWidth <= 0f || graphHeight <= 0f) return@Canvas
@@ -154,7 +155,7 @@ fun TideGraph(
 
         val visibleEndX = visibleSamples.lastOrNull()?.let { xFor(it.dateTime) } ?: leftPadding
         val labelAlpha = ((reveal - LABEL_REVEAL_START) / (1f - LABEL_REVEAL_START)).coerceIn(0f, 1f)
-        points.forEach { point ->
+        points.forEachIndexed { index, point ->
             val center = Offset(xFor(point.dateTime), yFor(point.heightFeet))
             if (center.x <= visibleEndX + POINT_VISIBILITY_PADDING && labelAlpha > 0f) {
                 val pointColor = if (point.tideValue == TideValue.High) Primary else BackgroundDark
@@ -166,13 +167,17 @@ fun TideGraph(
                 drawLabel(
                     text = "${point.timeLabel}\n${point.heightLabel}",
                     x = center.x,
-                    y = if (point.tideValue == TideValue.High) {
-                        center.y - LABEL_VERTICAL_OFFSET
-                    } else {
-                        center.y + LABEL_VERTICAL_OFFSET
-                    },
+                    y = tideLabelFirstBaseline(
+                        isHigh = point.tideValue == TideValue.High,
+                        graphTop = topPadding,
+                        graphBottom = baselineY,
+                    ),
                     color = BackgroundDark.copy(alpha = labelAlpha),
-                    alignCenter = true,
+                    textAlign = when (index) {
+                        0 -> Paint.Align.LEFT
+                        points.lastIndex -> Paint.Align.RIGHT
+                        else -> Paint.Align.CENTER
+                    },
                 )
             }
         }
@@ -201,24 +206,9 @@ fun TideGraph(
                 x = nowX,
                 y = max(topPadding + LABEL_TEXT_SIZE, nowY - NOW_LABEL_OFFSET),
                 color = BackgroundDark,
-                alignCenter = true,
+                textAlign = Paint.Align.CENTER,
             )
         }
-
-        drawLabel(
-            text = points.first().timeLabel,
-            x = leftPadding,
-            y = size.height - 6.dp.toPx(),
-            color = BackgroundDark.copy(alpha = LABEL_ALPHA),
-            alignCenter = false,
-        )
-        drawLabel(
-            text = points.last().timeLabel,
-            x = leftPadding + graphWidth,
-            y = size.height - 6.dp.toPx(),
-            color = BackgroundDark.copy(alpha = LABEL_ALPHA),
-            alignCenter = true,
-        )
     }
 }
 
@@ -247,6 +237,18 @@ internal fun visibleTideSampleCount(totalSamples: Int, progress: Float): Int {
     return revealedSamples.coerceIn(2, totalSamples)
 }
 
+internal fun tideLabelFirstBaseline(
+    isHigh: Boolean,
+    graphTop: Float,
+    graphBottom: Float,
+): Float {
+    return if (isHigh) {
+        graphTop - EXTREME_LABEL_GAP - LABEL_LINE_HEIGHT
+    } else {
+        graphBottom + EXTREME_LABEL_GAP + LABEL_TEXT_SIZE
+    }
+}
+
 private fun interpolateHeight(points: List<TideGraphPoint>, dateTime: LocalDateTime): Double {
     val segment = points.zipWithNext().firstOrNull { (start, end) ->
         !dateTime.isBefore(start.dateTime) && !dateTime.isAfter(end.dateTime)
@@ -272,13 +274,13 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawLabel(
     x: Float,
     y: Float,
     color: Color,
-    alignCenter: Boolean,
+    textAlign: Paint.Align,
 ) {
-    val paint = android.graphics.Paint().apply {
+    val paint = Paint().apply {
         isAntiAlias = true
         textSize = LABEL_TEXT_SIZE
         this.color = color.toArgb()
-        textAlign = if (alignCenter) android.graphics.Paint.Align.CENTER else android.graphics.Paint.Align.LEFT
+        this.textAlign = textAlign
     }
     val lines = text.split('\n')
     lines.forEachIndexed { index, line ->
@@ -318,11 +320,10 @@ private const val CURVE_WIDTH = 5f
 private const val EXTREME_RADIUS = 5.5f
 private const val NOW_RADIUS = 6.5f
 private const val NOW_LINE_WIDTH = 2.5f
-private const val LABEL_VERTICAL_OFFSET = 12f
-private const val NOW_LABEL_OFFSET = 12f
+private const val EXTREME_LABEL_GAP = 10f
+private const val NOW_LABEL_OFFSET = 20f
 private const val LABEL_TEXT_SIZE = 24f
 private const val LABEL_LINE_HEIGHT = 24f
-private const val LABEL_ALPHA = 0.78f
 private const val LABEL_REVEAL_START = 0.68f
 private const val WATER_FILL_ALPHA = 0.16f
 private const val POINT_VISIBILITY_PADDING = 1f
