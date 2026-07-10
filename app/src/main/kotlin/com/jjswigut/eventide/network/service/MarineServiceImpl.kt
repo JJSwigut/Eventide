@@ -115,9 +115,10 @@ class MarineServiceImpl(
                 .minByOrNull { (_, distance) -> distance }
                 ?: return null
 
-            val latestText = client.getNdbcRealtimeText(nearest.first.id).bodyAsText()
+            val station = nearest.first.copy(id = nearest.first.id.uppercase(Locale.US))
+            val latestText = client.getNdbcRealtimeText(station.id).bodyAsText()
             parseNdbcRealtimeText(
-                station = nearest.first,
+                station = station,
                 distanceMiles = nearest.second,
                 text = latestText,
             )

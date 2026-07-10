@@ -47,9 +47,6 @@ import com.jjswigut.eventide.ui.components.SectionTitleText
 import com.jjswigut.eventide.ui.components.ShimmerLoading
 import com.jjswigut.eventide.ui.theme.BackgroundDark
 import com.jjswigut.eventide.ui.theme.PrimaryLight
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
 
@@ -110,6 +107,7 @@ private object TemperatureColors {
 
 @Composable
 fun TideCard(
+    modifier: Modifier = Modifier.fillMaxHeight(.8f),
     day: TideDay,
     settings: AppSettings,
 ) {
@@ -117,8 +115,7 @@ fun TideCard(
 
     @Suppress("UnusedBoxWithConstraintsScope")
     BoxWithConstraints(
-        modifier = Modifier
-            .fillMaxHeight(.8f)
+        modifier = modifier
             .width(boxWidth.dp)
             .background(
                 color = BackgroundDark.copy(alpha = TideCardDesign.cardBackgroundAlpha),
@@ -471,27 +468,8 @@ private fun WeatherContent(
 }
 
 private fun Weather.sourceLabel(): String {
-    val validity = forecastStart?.let { start ->
-        val end = forecastEnd
-        if (end == null) {
-            "valid ${start.shortLabel()}"
-        } else {
-            "valid ${start.shortLabel()}-${end.shortLabel()}"
-        }
-    }
-    val issued = forecastIssuedAt?.let { "issued ${it.shortLabel()}" }
-    return listOfNotNull(
-        "$source ${sourceType.lowercase(Locale.US)}",
-        validity,
-        issued,
-    ).joinToString(" - ")
+    return source
 }
-
-private fun OffsetDateTime.shortLabel(): String {
-    return forecastTimeFormatter.format(this)
-}
-
-private val forecastTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d h:mma", Locale.US)
 
 @Composable
 private fun TemperatureBox(
