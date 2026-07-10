@@ -166,11 +166,12 @@ fun TideGraph(
                 drawLabel(
                     text = "${point.timeLabel}\n${point.heightLabel}",
                     x = center.x,
-                    y = if (point.tideValue == TideValue.High) {
-                        center.y - LABEL_VERTICAL_OFFSET
-                    } else {
-                        center.y + LABEL_VERTICAL_OFFSET
-                    },
+                    y = tideLabelFirstBaseline(
+                        centerY = center.y,
+                        isHigh = point.tideValue == TideValue.High,
+                        topBound = topPadding,
+                        bottomBound = baselineY,
+                    ),
                     color = BackgroundDark.copy(alpha = labelAlpha),
                     alignCenter = true,
                 )
@@ -247,6 +248,22 @@ internal fun visibleTideSampleCount(totalSamples: Int, progress: Float): Int {
     return revealedSamples.coerceIn(2, totalSamples)
 }
 
+internal fun tideLabelFirstBaseline(
+    centerY: Float,
+    isHigh: Boolean,
+    topBound: Float,
+    bottomBound: Float,
+): Float {
+    val firstVisibleBaseline = topBound + LABEL_TEXT_SIZE
+    val lastVisibleFirstBaseline = max(firstVisibleBaseline, bottomBound - LABEL_LINE_HEIGHT)
+    val desiredBaseline = if (isHigh) {
+        centerY - EXTREME_LABEL_GAP - LABEL_LINE_HEIGHT
+    } else {
+        centerY + EXTREME_LABEL_GAP + LABEL_TEXT_SIZE
+    }
+    return desiredBaseline.coerceIn(firstVisibleBaseline, lastVisibleFirstBaseline)
+}
+
 private fun interpolateHeight(points: List<TideGraphPoint>, dateTime: LocalDateTime): Double {
     val segment = points.zipWithNext().firstOrNull { (start, end) ->
         !dateTime.isBefore(start.dateTime) && !dateTime.isAfter(end.dateTime)
@@ -318,7 +335,7 @@ private const val CURVE_WIDTH = 5f
 private const val EXTREME_RADIUS = 5.5f
 private const val NOW_RADIUS = 6.5f
 private const val NOW_LINE_WIDTH = 2.5f
-private const val LABEL_VERTICAL_OFFSET = 12f
+private const val EXTREME_LABEL_GAP = 10f
 private const val NOW_LABEL_OFFSET = 12f
 private const val LABEL_TEXT_SIZE = 24f
 private const val LABEL_LINE_HEIGHT = 24f

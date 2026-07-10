@@ -36,6 +36,7 @@ import com.jjswigut.eventide.ui.theme.BackgroundDark
 import com.jjswigut.eventide.ui.theme.LightText
 import com.jjswigut.eventide.ui.theme.PrimaryDark
 import com.jjswigut.eventide.ui.theme.SecondaryLight
+import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -61,8 +62,8 @@ fun MenuButton(
             .size(containerSize),
         contentAlignment = Alignment.BottomEnd,
     ) {
-        val angleOffset = 45f
-        val baseOffset = mainButtonSize + spacing
+        val menuRadius = 136.dp
+        val centerAlignmentCorrection = (mainButtonSize - menuButtonSize) / 2f
 
         menuButtons.forEachIndexed { index, menuButton ->
             val animatedProgress = expansionTransition.animateFloat(
@@ -87,7 +88,7 @@ fun MenuButton(
             } else {
                 0f
             }
-            val angle = menuButtonAngle(index, angleOffset)
+            val angle = menuButtonAngle(index, menuButtons.size)
             val scale = 0.8f + (0.2f * progress)
 
             if (expanded || progress > 0.01f) {
@@ -98,8 +99,8 @@ fun MenuButton(
                     size = menuButtonSize,
                     modifier = Modifier
                         .offset(
-                            x = cos(angle) * baseOffset * progress,
-                            y = sin(angle) * baseOffset * progress,
+                            x = (cos(angle) * menuRadius * progress) - centerAlignmentCorrection,
+                            y = (sin(angle) * menuRadius * progress) - centerAlignmentCorrection,
                         )
                         .graphicsLayer {
                             alpha = progress
@@ -139,11 +140,14 @@ private fun calculateMaxExtension(count: Int, buttonSize: Dp, spacing: Dp): Dp {
     return (buttonSize + spacing) * count
 }
 
-private fun menuButtonAngle(
+internal fun menuButtonAngle(
     index: Int,
-    angleOffset: Float,
+    count: Int,
 ): Double {
-    return Math.toRadians((-90f - (angleOffset * index)).toDouble())
+    if (count <= 1) return -PI / 2
+
+    val fraction = index.coerceIn(0, count - 1).toDouble() / (count - 1)
+    return Math.toRadians(MENU_START_DEGREES + (MENU_SWEEP_DEGREES * fraction))
 }
 
 private operator fun Double.times(dp: Dp): Dp = (this * dp.value).dp
@@ -203,3 +207,6 @@ data class MenuItem(
 )
 
 interface Action
+
+private const val MENU_START_DEGREES = -90.0
+private const val MENU_SWEEP_DEGREES = -90.0
