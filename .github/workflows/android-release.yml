@@ -1,7 +1,17 @@
-name: Android CI/CD Release
+name: Android Release and Play Store Listing
 
 on:
   workflow_dispatch:
+    inputs:
+      operation:
+        description: Choose an app release or a metadata-only Play Store operation
+        required: true
+        default: release
+        type: choice
+        options:
+          - release
+          - validate-store-listing
+          - publish-store-listing
   push:
     branches:
       - main # Triggers on pushes to the main branch
@@ -9,6 +19,7 @@ on:
 jobs:
   build-and-release:
     name: Build, Sign, and Release AAB
+    if: github.event_name == 'push' || inputs.operation == 'release'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -141,3 +152,37 @@ jobs:
         run: |
           ls -la "$(dirname "$AAB_PATH")"
           bundle exec fastlane android deploy
+
+  store-listing:
+    name: ${{ inputs.operation == 'publish-store-listing' && 'Publish' || 'Validate' }} Play Store listing
+    if: github.event_name == 'workflow_dispatch' && (inputs.operation == 'validate-store-listing' || inputs.operation == 'publish-store-listing')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - name: Install Fastlane dependencies
+        run: bundle install --jobs 4 --retry 3
+
+      - name: Validate local listing assets
+        run: python3 tools/eventide_validate_store_listing.py
+
+      - name: Validate with Google Play
+        if: inputs.operation == 'validate-store-listing'
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: bundle exec fastlane android store_listing validate_only:true
+
+      - name: Publish to Google Play
+        if: inputs.operation == 'publish-store-listing'
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: bundle exec fastlane android store_listing validate_only:false

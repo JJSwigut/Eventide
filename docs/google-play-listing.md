@@ -49,10 +49,12 @@ Run the local validation before review:
 python3 tools/eventide_validate_store_listing.py
 ```
 
-The `Google Play Store Listing` GitHub Actions workflow is manual and defaults
-to `validate`. Its `publish` mode replaces the live English listing images and
-copy, so publishing requires an explicit owner decision. Normal app releases
-continue uploading only the AAB and version-specific changelog.
+The `Android Release and Play Store Listing` workflow is manual for listing
+operations. Choose `validate-store-listing` to check the metadata against Play
+or `publish-store-listing` to replace the live English listing images and copy.
+Publishing requires an explicit owner decision. Pushes to `main` and manual
+`release` runs continue to build and upload the AAB and version-specific
+changelog; listing operations skip the release job entirely.
 
 Google Play asset guidance:
 https://support.google.com/googleplay/android-developer/answer/9866151?hl=en
