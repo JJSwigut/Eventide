@@ -1,7 +1,10 @@
 package com.jjswigut.eventide
 
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
+import android.Manifest.permission.POST_NOTIFICATIONS
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -17,6 +20,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import com.jjswigut.eventide.map.MapScreen
+import com.jjswigut.eventide.smoke.SmokeStationDetailScreen
 import com.jjswigut.eventide.ui.theme.EventideTheme
 
 class MainActivity : ComponentActivity() {
@@ -25,6 +29,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        if (shouldShowSmokeFixture()) {
+            setupSmokeScreen()
+            return
+        }
         requestLocationPermission()
     }
 
@@ -33,6 +41,13 @@ class MainActivity : ComponentActivity() {
             RequestPermission(),
         ) { isGranted: Boolean ->
             hasLocationPermission = isGranted
+            requestNotificationPermission()
+        }
+
+    private val requestNotificationPermissionLauncher =
+        registerForActivityResult(
+            RequestPermission(),
+        ) {
             setupMapScreen()
         }
 
@@ -43,19 +58,44 @@ class MainActivity : ComponentActivity() {
                 ACCESS_COARSE_LOCATION,
             ) == PackageManager.PERMISSION_GRANTED -> {
                 hasLocationPermission = true
-                setupMapScreen()
+                requestNotificationPermission()
             }
             ActivityCompat.shouldShowRequestPermissionRationale(
                 this,
                 ACCESS_COARSE_LOCATION,
             ) -> {
                 hasLocationPermission = false // todo show rationale
-                setupMapScreen()
+                requestNotificationPermission()
             }
             else -> {
                 requestPermissionLauncher.launch(
                     ACCESS_COARSE_LOCATION,
                 )
+            }
+        }
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            setupMapScreen()
+            return
+        }
+
+        when {
+            ContextCompat.checkSelfPermission(
+                this,
+                POST_NOTIFICATIONS,
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                setupMapScreen()
+            }
+            ActivityCompat.shouldShowRequestPermissionRationale(
+                this,
+                POST_NOTIFICATIONS,
+            ) -> {
+                setupMapScreen()
+            }
+            else -> {
+                requestNotificationPermissionLauncher.launch(POST_NOTIFICATIONS)
             }
         }
     }
@@ -73,5 +113,27 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun setupSmokeScreen() {
+        setContent {
+            EventideTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    SmokeStationDetailScreen()
+                }
+            }
+        }
+    }
+
+    private fun shouldShowSmokeFixture(): Boolean {
+        val isDebuggable = applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
+        return isDebuggable && intent.getBooleanExtra(EXTRA_SMOKE_FIXTURE, false)
+    }
+
+    companion object {
+        const val EXTRA_SMOKE_FIXTURE = "eventide.SMOKE_FIXTURE"
     }
 }

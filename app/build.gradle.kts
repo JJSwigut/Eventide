@@ -11,19 +11,26 @@ plugins {
     id("eventide.quality")
 }
 android {
+    val keyStorePropertiesFile = rootProject.file("app/keystore.properties")
+    val hasReleaseSigningConfig = keyStorePropertiesFile.exists()
+
     signingConfigs {
-        val keyStoreProperties = loadProperties("app/keystore.properties")
-        create("release") {
-            storePassword = keyStoreProperties.getProperty("storePassword")
-            keyPassword = keyStoreProperties.getProperty("keyPassword")
-            keyAlias = keyStoreProperties.getProperty("keyAlias")
-            storeFile = file(keyStoreProperties.getProperty("storeFile"))
+        if (hasReleaseSigningConfig) {
+            val keyStoreProperties = loadProperties(keyStorePropertiesFile.absolutePath)
+            create("release") {
+                storePassword = keyStoreProperties.getProperty("storePassword")
+                keyPassword = keyStoreProperties.getProperty("keyPassword")
+                keyAlias = keyStoreProperties.getProperty("keyAlias")
+                storeFile = file(keyStoreProperties.getProperty("storeFile"))
+            }
         }
     }
     namespace = "com.jjswigut.eventide"
     buildTypes {
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
+            if (hasReleaseSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 }
@@ -32,6 +39,8 @@ dependencies {
     implementation(libs.bundles.koinDI)
     implementation(libs.bundles.ktorNetworking)
     implementation(libs.bundles.sqlDelight)
+    implementation(libs.bundles.workManager)
+    implementation(libs.bundles.dataStore)
 
     // Use OkHttp engine instead of deprecated Android engine
     implementation("io.ktor:ktor-client-okhttp:${libs.versions.ktor.get()}")

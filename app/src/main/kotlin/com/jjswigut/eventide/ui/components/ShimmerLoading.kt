@@ -26,31 +26,41 @@ import androidx.compose.ui.unit.dp
 fun ShimmerLoading(
     modifier: Modifier = Modifier,
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
-    val shimmerTranslate by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1000f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 1200,
-                easing = LinearEasing,
+    val motionEnabled = rememberEventideMotionEnabled()
+    val brush = if (motionEnabled) {
+        val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
+        val shimmerTranslate by infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1000f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(
+                    durationMillis = 1200,
+                    easing = LinearEasing,
+                ),
+                repeatMode = RepeatMode.Restart,
             ),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "shimmer",
-    )
+            label = "shimmer",
+        )
 
-    val shimmerColors = listOf(
-        Color.White.copy(alpha = 0.3f),
-        Color.White.copy(alpha = 0.5f),
-        Color.White.copy(alpha = 0.3f),
-    )
+        val shimmerColors = listOf(
+            Color.White.copy(alpha = 0.3f),
+            Color.White.copy(alpha = 0.5f),
+            Color.White.copy(alpha = 0.3f),
+        )
 
-    val brush = Brush.linearGradient(
-        colors = shimmerColors,
-        start = Offset(shimmerTranslate - 300f, shimmerTranslate - 300f),
-        end = Offset(shimmerTranslate, shimmerTranslate),
-    )
+        Brush.linearGradient(
+            colors = shimmerColors,
+            start = Offset(shimmerTranslate - 300f, shimmerTranslate - 300f),
+            end = Offset(shimmerTranslate, shimmerTranslate),
+        )
+    } else {
+        Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.34f),
+                Color.White.copy(alpha = 0.34f),
+            ),
+        )
+    }
 
     Column(
         modifier = modifier,

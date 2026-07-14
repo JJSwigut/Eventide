@@ -7,7 +7,20 @@ val repositoryModule = module {
         NoaaRepositoryImpl(
             noaaService = get(),
             weatherService = get(),
+            marineService = get(),
             stationsDb = get(),
+        )
+    }
+    single<FavoritesRepository> {
+        FavoritesRepositoryImpl(
+            stationsDb = get(),
+            dispatcher = get(),
+        )
+    }
+    single<TideAlertRepository> {
+        TideAlertRepositoryImpl(
+            stationsDb = get(),
+            dispatcher = get(),
         )
     }
 }

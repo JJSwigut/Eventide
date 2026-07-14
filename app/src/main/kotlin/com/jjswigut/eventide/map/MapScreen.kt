@@ -1,7 +1,9 @@
 package com.jjswigut.eventide.map
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -10,6 +12,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.maps.CameraUpdate
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -20,13 +24,31 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.MapsComposeExperimentalApi
+import com.google.maps.android.compose.TileOverlay
+import com.jjswigut.eventide.map.MapAction.ClearHomeStation
+import com.jjswigut.eventide.map.MapAction.CloseFavorites
+import com.jjswigut.eventide.map.MapAction.CloseSettings
 import com.jjswigut.eventide.map.MapAction.HandleMapMotion
 import com.jjswigut.eventide.map.MapAction.Initialize
 import com.jjswigut.eventide.map.MapAction.MapLoaded
 import com.jjswigut.eventide.map.MapAction.NavigateToNearestStation
+import com.jjswigut.eventide.map.MapAction.OpenFavorite
+import com.jjswigut.eventide.map.MapAction.SetHomeStation
+import com.jjswigut.eventide.map.MapAction.SetTempUnit
+import com.jjswigut.eventide.map.MapAction.SetTideAlertFilter
+import com.jjswigut.eventide.map.MapAction.SetTideAlertLeadTime
+import com.jjswigut.eventide.map.MapAction.SetTideUnit
+import com.jjswigut.eventide.map.MapAction.SetTimeFormat
+import com.jjswigut.eventide.map.MapAction.ToggleRadarOverlay
+import com.jjswigut.eventide.map.MapAction.ToggleSatelliteOverlay
+import com.jjswigut.eventide.map.MapAction.ToggleTideAlert
+import com.jjswigut.eventide.map.MapAction.ToggleWeatherOverlay
+import com.jjswigut.eventide.map.components.FavoritesPanel
+import com.jjswigut.eventide.map.components.SettingsPanel
 import com.jjswigut.eventide.map.components.StationInfoRow
 import com.jjswigut.eventide.ui.components.ClusterPin
 import com.jjswigut.eventide.ui.components.EmptyStateOverlay
+import com.jjswigut.eventide.ui.components.MenuButton
 import com.jjswigut.eventide.ui.components.SplashScreen
 import com.jjswigut.eventide.ui.components.StationPin
 import kotlinx.coroutines.launch
@@ -39,7 +61,26 @@ fun MapScreen(
     hasLocationPermission: Boolean,
 ) {
     val viewState by viewModel.viewState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val radarTileProvider = remember {
+        WmsTileProvider(
+            baseUrl = "https://nowcoast.noaa.gov/geoserver/observations/weather_radar/ows",
+            layers = "base_reflectivity_mosaic",
+        )
+    }
+    val weatherTileProvider = remember {
+        WmsTileProvider(
+            baseUrl = "https://mapservices.weather.noaa.gov/geoserver/ndfd/sky/ows",
+            layers = "sky",
+        )
+    }
+    val satelliteTileProvider = remember {
+        WmsTileProvider(
+            baseUrl = "https://nowcoast.noaa.gov/geoserver/observations/satellite/ows",
+            layers = "goes_longwave_imagery",
+        )
+    }
 
     val mapProperties by remember(hasLocationPermission) {
         mutableStateOf(
@@ -100,6 +141,30 @@ fun MapScreen(
                 viewModel.handleAction(MapLoaded)
             },
         ) {
+            if (viewState.isWeatherOverlayEnabled) {
+                TileOverlay(
+                    tileProvider = weatherTileProvider,
+                    transparency = WEATHER_OVERLAY_TRANSPARENCY,
+                    zIndex = WEATHER_OVERLAY_Z_INDEX,
+                )
+            }
+
+            if (viewState.isRadarOverlayEnabled) {
+                TileOverlay(
+                    tileProvider = radarTileProvider,
+                    transparency = RADAR_OVERLAY_TRANSPARENCY,
+                    zIndex = RADAR_OVERLAY_Z_INDEX,
+                )
+            }
+
+            if (viewState.isSatelliteOverlayEnabled) {
+                TileOverlay(
+                    tileProvider = satelliteTileProvider,
+                    transparency = SATELLITE_OVERLAY_TRANSPARENCY,
+                    zIndex = SATELLITE_OVERLAY_Z_INDEX,
+                )
+            }
+
             EventideClustering(
                 items = viewState.stations,
                 onClusterClick = onClusterClick,
@@ -128,13 +193,129 @@ fun MapScreen(
             StationInfoRow(
                 modifier = Modifier.align(Alignment.Center),
                 list = tideDays,
+                marineConditions = viewState.marineConditions,
+                isMarineConditionsLoading = viewState.isMarineConditionsLoading,
+                station = viewState.selectedStation,
+                isFavorite = viewState.isSelectedStationFavorite,
+                settings = viewState.settings,
                 actionHandler = viewModel::handleAction,
+            )
+        }
+
+        MenuButton(
+            expanded = viewState.menuState.expanded,
+            centerButton = viewState.menuState.centerButton,
+            menuButtons = viewState.menuState.outsideButtons,
+            selectedActions = buildSet {
+                if (viewState.isRadarOverlayEnabled) add(ToggleRadarOverlay)
+                if (viewState.isWeatherOverlayEnabled) add(ToggleWeatherOverlay)
+                if (viewState.isSatelliteOverlayEnabled) add(ToggleSatelliteOverlay)
+            },
+            actionHandler = { action ->
+                when (action) {
+                    ToggleRadarOverlay -> {
+                        val toggleMessage = if (viewState.isRadarOverlayEnabled) {
+                            "Radar has been disabled"
+                        } else {
+                            "Radar has been enabled"
+                        }
+                        Toast.makeText(context, toggleMessage, Toast.LENGTH_SHORT).show()
+                    }
+                    ToggleWeatherOverlay -> {
+                        val toggleMessage = if (viewState.isWeatherOverlayEnabled) {
+                            "Weather has been disabled"
+                        } else {
+                            "Weather has been enabled"
+                        }
+                        Toast.makeText(context, toggleMessage, Toast.LENGTH_SHORT).show()
+                    }
+                    ToggleSatelliteOverlay -> {
+                        val toggleMessage = if (viewState.isSatelliteOverlayEnabled) {
+                            "Clouds have been disabled"
+                        } else {
+                            "Clouds have been enabled"
+                        }
+                        Toast.makeText(context, toggleMessage, Toast.LENGTH_SHORT).show()
+                    }
+                }
+                viewModel.handleAction(action)
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 40.dp),
+        )
+
+        if (viewState.showFavorites) {
+            FavoritesPanel(
+                favorites = viewState.favorites,
+                alertPreferences = viewState.tideAlerts,
+                homeStationId = viewState.settings.homeStationId,
+                onFavoriteClick = {
+                    viewModel.handleAction(OpenFavorite(it))
+                },
+                onAlertToggle = {
+                    viewModel.handleAction(ToggleTideAlert(it))
+                },
+                onLeadTimeSelected = { stationId, leadTimeMinutes ->
+                    viewModel.handleAction(
+                        SetTideAlertLeadTime(
+                            stationId = stationId,
+                            leadTimeMinutes = leadTimeMinutes,
+                        ),
+                    )
+                },
+                onFilterSelected = { stationId, tideAlertFilter ->
+                    viewModel.handleAction(
+                        SetTideAlertFilter(
+                            stationId = stationId,
+                            tideAlertFilter = tideAlertFilter,
+                        ),
+                    )
+                },
+                onHomeSelected = {
+                    viewModel.handleAction(SetHomeStation(it))
+                },
+                onClose = {
+                    viewModel.handleAction(CloseFavorites)
+                },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+
+        if (viewState.showSettings) {
+            SettingsPanel(
+                settings = viewState.settings,
+                homeStation = viewState.favorites.firstOrNull {
+                    it.id == viewState.settings.homeStationId
+                },
+                onTideUnitSelected = {
+                    viewModel.handleAction(SetTideUnit(it))
+                },
+                onTempUnitSelected = {
+                    viewModel.handleAction(SetTempUnit(it))
+                },
+                onTimeFormatSelected = {
+                    viewModel.handleAction(SetTimeFormat(it))
+                },
+                onClearHomeStation = {
+                    viewModel.handleAction(ClearHomeStation)
+                },
+                onClose = {
+                    viewModel.handleAction(CloseSettings)
+                },
+                modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
     }
 }
 
 private const val CLUSTER_ZOOM_PADDING = 150
+private const val WEATHER_OVERLAY_TRANSPARENCY = 0.35f
+private const val RADAR_OVERLAY_TRANSPARENCY = 0.15f
+private const val SATELLITE_OVERLAY_TRANSPARENCY = 0.45f
+private const val WEATHER_OVERLAY_Z_INDEX = 1f
+private const val RADAR_OVERLAY_Z_INDEX = 2f
+private const val SATELLITE_OVERLAY_Z_INDEX = 3f
 
 fun Cluster<*>.clusterZoomCameraUpdate(): CameraUpdate {
     val latLngBoundsBuilder = LatLngBounds.Builder()

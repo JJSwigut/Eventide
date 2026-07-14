@@ -2,11 +2,14 @@ package com.jjswigut.eventide.repository
 
 import com.google.android.gms.maps.model.LatLngBounds
 import com.jjswigut.eventide.StationsDb
+import com.jjswigut.eventide.astronomy.withSunMoonData
+import com.jjswigut.eventide.data.models.MarineConditions
 import com.jjswigut.eventide.data.models.Station
 import com.jjswigut.eventide.data.models.TideDay
 import com.jjswigut.eventide.data.models.Weather
 import com.jjswigut.eventide.db.toModel
 import com.jjswigut.eventide.network.responses.StationsResponse.StationDto
+import com.jjswigut.eventide.network.service.MarineService
 import com.jjswigut.eventide.network.service.NoaaService
 import com.jjswigut.eventide.network.service.WeatherService
 import com.jjswigut.eventide.network.utils.Either
@@ -20,6 +23,7 @@ import kotlinx.coroutines.launch
 class NoaaRepositoryImpl(
     private val noaaService: NoaaService,
     private val weatherService: WeatherService,
+    private val marineService: MarineService,
     private val stationsDb: StationsDb,
 ) : NoaaRepository {
 
@@ -32,25 +36,25 @@ class NoaaRepositoryImpl(
     }
 
     override suspend fun getTidesForStation(stationID: String): Either<List<TideDay>, GenericError> {
+        val station = getStationById(stationID)
         return noaaService.getTidesForStation(stationID).processSuccess { response ->
-            response.toListOfTideDays()
+            val tideDays = response.toListOfTideDays()
+            if (station == null) {
+                tideDays
+            } else {
+                tideDays.withSunMoonData(station.latLng)
+            }
         }
     }
 
     override suspend fun getTidesWithWeather(stationID: String): Either<List<TideDay>, GenericError> =
         coroutineScope {
             // Get the station to access its coordinates
-            val station =
-                getStationById(stationID) ?: return@coroutineScope Either.failure(DbError())
+            if (getStationById(stationID) == null) return@coroutineScope Either.failure(DbError())
 
             // Fetch tides and weather in parallel for better performance
             val tidesDeferred = async { getTidesForStation(stationID) }
-            val weatherDeferred = async {
-                fetchWeatherForStation(
-                    latitude = station.latLng.latitude,
-                    longitude = station.latLng.longitude,
-                )
-            }
+            val weatherDeferred = async { getWeatherForStation(stationID) }
 
             val tidesResult = tidesDeferred.await()
             val weatherResult = weatherDeferred.await()
@@ -66,6 +70,23 @@ class NoaaRepositoryImpl(
                 }
             }
         }
+
+    override suspend fun getWeatherForStation(stationID: String): Either<List<Weather>, GenericError> {
+        val station = getStationById(stationID) ?: return Either.failure(DbError())
+        return fetchWeatherForStation(
+            latitude = station.latLng.latitude,
+            longitude = station.latLng.longitude,
+        )
+    }
+
+    override suspend fun getMarineConditionsForStation(stationID: String): Either<MarineConditions, GenericError> {
+        val station = getStationById(stationID) ?: return Either.success(MarineConditions())
+        return marineService.getMarineConditions(
+            stationId = stationID,
+            latitude = station.latLng.latitude,
+            longitude = station.latLng.longitude,
+        )
+    }
 
     override suspend fun getTidesImmediately(
         stationID: String,
