@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <rect width="1024" height="500" fill="#dff5f5"/>
+  <path d="M0 0h492v500H0z" fill="#005560"/>
+  <path d="M492 0h532v500H492z" fill="#dff5f5"/>
+
+  <circle cx="116" cy="126" r="62" fill="#ffffff"/>
+  <circle cx="116" cy="126" r="54" fill="#65bac3"/>
+  <path d="M67 133c15 15 27 23 49 29 28 8 57-1 75-29v39c-18 17-44 26-75 26-20 0-37-5-50-13z" fill="#063d46"/>
+  <path d="M62 124Q76 104 90 124Q104 144 118 124Q132 104 146 124Q160 144 174 124L174 132Q160 152 146 132Q132 112 118 132Q104 152 90 132Q76 112 62 132Z" fill="#ffffff"/>
+
+  <text x="64" y="286" fill="#ffffff" font-family="Arial, sans-serif" font-size="66" font-weight="700">Eventide</text>
+  <text x="66" y="331" fill="#dff5f5" font-family="Arial, sans-serif" font-size="25" font-weight="600">Tides and weather</text>
+  <text x="66" y="365" fill="#dff5f5" font-family="Arial, sans-serif" font-size="25" font-weight="600">Marine conditions</text>
+  <text x="66" y="414" fill="#9fdde1" font-family="Arial, sans-serif" font-size="21">Plan the coast with confidence.</text>
+
+  <circle cx="891" cy="94" r="31" fill="#ffb21c"/>
+  <g stroke="#ffb21c" stroke-width="7" stroke-linecap="round">
+    <path d="M891 45v-18M891 161v-18M842 94h-18M958 94h-18"/>
+    <path d="M856 59l-13-13M939 142l-13-13M856 129l-13 13M939 46l-13 13"/>
+  </g>
+
+  <path d="M520 353C592 294 644 301 700 349c48 41 94 41 150-5 50-41 95-42 174 15v141H492V378z" fill="#65bac3"/>
+  <path d="M510 322c69-66 126-70 190-12 55 50 103 49 158 1 46-40 93-43 166 2" fill="none" stroke="#005560" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="620" cy="272" r="10" fill="#ffb21c" stroke="#005560" stroke-width="6"/>
+  <circle cx="786" cy="332" r="10" fill="#ffffff" stroke="#005560" stroke-width="6"/>
+  <circle cx="938" cy="268" r="10" fill="#ffb21c" stroke="#005560" stroke-width="6"/>
+
+  <g transform="translate(704 114)">
+    <path d="M72 0c40 0 72 32 72 72 0 54-72 124-72 124S0 126 0 72C0 32 32 0 72 0z" fill="#005560"/>
+    <path d="M35 91h79M45 82l18-44v44M63 38l31 31M63 82l45-18-14 5" fill="none" stroke="#e4fdfd" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
