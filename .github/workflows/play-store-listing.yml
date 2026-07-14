@@ -1,0 +1,51 @@
+name: Google Play Store Listing
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Validate the listing or publish it to Google Play
+        required: true
+        default: validate
+        type: choice
+        options:
+          - validate
+          - publish
+
+permissions:
+  contents: read
+
+concurrency:
+  group: google-play-store-listing
+  cancel-in-progress: false
+
+jobs:
+  store-listing:
+    name: ${{ inputs.mode == 'publish' && 'Publish' || 'Validate' }} store listing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - name: Install Fastlane dependencies
+        run: bundle install --jobs 4 --retry 3
+
+      - name: Validate local listing assets
+        run: python3 tools/eventide_validate_store_listing.py
+
+      - name: Validate with Google Play
+        if: inputs.mode == 'validate'
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: bundle exec fastlane android store_listing validate_only:true
+
+      - name: Publish to Google Play
+        if: inputs.mode == 'publish'
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: bundle exec fastlane android store_listing validate_only:false
