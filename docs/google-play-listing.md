@@ -16,6 +16,15 @@ The canonical phone screenshot order is:
 
 Google Play requires the feature graphic to be a 1024x500 PNG or JPEG without
 alpha. Its editable source is `docs/assets/google-play-feature-graphic.svg`.
+The composition uses the shipping launcher asset, the shipping map-pin vector,
+and the first store screenshot as product proof. Render it from the repository
+root so the source-image references resolve:
+
+```bash
+magick -background none docs/assets/google-play-feature-graphic.svg \
+  -resize 1024x500\! -alpha off PNG24:fastlane/metadata/android/en-US/images/featureGraphic.png
+```
+
 Eventide phone screenshots use 1080x1920 PNGs without alpha. The existing Play
 icon remains unchanged; a future replacement can be supplied as a 512x512
 `images/icon.png` aligned with the launcher icon.
