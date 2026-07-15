@@ -2,6 +2,16 @@ Plan your time on the water with a clear view of the coast.
 
 Eventide brings tide predictions, marine observations, coastal weather, and map overlays together in one focused app. Browse nearby NOAA stations on the map, open a station for a readable tide chart, and see the conditions that matter before you head out.
 
+GOVERNMENT INFORMATION DISCLAIMER
+Eventide is an independent app. It does not represent, and is not affiliated with or endorsed by, NOAA, the National Weather Service, the National Data Buoy Center, or any government entity.
+
+OFFICIAL GOVERNMENT SOURCES
+- NOAA Tides & Currents (tide predictions and station observations): https://tidesandcurrents.noaa.gov/
+- National Weather Service (weather forecasts and marine alerts): https://www.weather.gov/
+- NOAA National Data Buoy Center (buoy and marine observations): https://www.ndbc.noaa.gov/
+- NOAA nowCOAST (radar and satellite overlays): https://nowcoast.noaa.gov/
+- NOAA/NWS Map Services (weather overlays): https://mapservices.weather.noaa.gov/
+
 TIDES AT A GLANCE
 - Read daily high and low tide times and heights
 - Follow the tide curve and current position
@@ -22,4 +32,4 @@ YOUR STATIONS, YOUR UNITS
 - Set alerts before selected high or low tides
 - Choose feet or meters, Fahrenheit or Celsius, and 12- or 24-hour time
 
-Eventide uses data from NOAA, the National Weather Service, and the National Data Buoy Center. Conditions can change quickly; always consult official navigation and safety information before making decisions on the water.
+Conditions can change quickly; always verify critical navigation and safety information with the official government sources linked above before making decisions on the water.

@@ -10,6 +10,13 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 LOCALE_DIR = REPO_ROOT / "fastlane" / "metadata" / "android" / "en-US"
 IMAGES_DIR = LOCALE_DIR / "images"
 SCREENSHOTS_DIR = IMAGES_DIR / "phoneScreenshots"
+GOVERNMENT_SOURCE_URLS = (
+    "https://tidesandcurrents.noaa.gov/",
+    "https://www.weather.gov/",
+    "https://www.ndbc.noaa.gov/",
+    "https://nowcoast.noaa.gov/",
+    "https://mapservices.weather.noaa.gov/",
+)
 
 
 def fail(message: str) -> None:
@@ -69,10 +76,21 @@ def validate_raster(path: Path, expected_size: tuple[int, int], allow_alpha: boo
         fail(f"{path.name} contains an alpha channel")
 
 
+def validate_government_information_disclosure(full_description: str) -> None:
+    normalized = full_description.lower()
+    for phrase in ("does not represent", "not affiliated", "government entity"):
+        if phrase not in normalized:
+            fail(f"full_description.txt is missing government disclaimer phrase: {phrase}")
+    for url in GOVERNMENT_SOURCE_URLS:
+        if url not in full_description:
+            fail(f"full_description.txt is missing official government source URL: {url}")
+
+
 def main() -> None:
     title = read_text("title.txt", 30)
     short_description = read_text("short_description.txt", 80)
     full_description = read_text("full_description.txt", 4000)
+    validate_government_information_disclosure(full_description)
 
     validate_raster(IMAGES_DIR / "featureGraphic.png", (1024, 500), allow_alpha=False)
     icon = IMAGES_DIR / "icon.png"
