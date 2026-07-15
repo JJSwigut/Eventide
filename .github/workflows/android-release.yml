@@ -12,6 +12,16 @@ on:
           - release
           - validate-store-listing
           - publish-store-listing
+          - promote-to-production
+      version_code:
+        description: Existing Google Play version code to promote
+        required: false
+        type: string
+      rollout:
+        description: Production rollout fraction from 0 to 1
+        required: false
+        default: '1.0'
+        type: string
   push:
     branches:
       - main # Triggers on pushes to the main branch
@@ -186,3 +196,31 @@ jobs:
         env:
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         run: bundle exec fastlane android store_listing validate_only:false
+
+  promote-to-production:
+    name: Promote build ${{ inputs.version_code }} to production
+    if: github.event_name == 'workflow_dispatch' && inputs.operation == 'promote-to-production'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - name: Install Fastlane dependencies
+        run: bundle install --jobs 4 --retry 3
+
+      - name: Promote existing Google Play release
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          PLAY_VERSION_CODE: ${{ inputs.version_code }}
+          PLAY_SOURCE_TRACK: internal
+          PLAY_DESTINATION_TRACK: production
+          PLAY_ROLLOUT: ${{ inputs.rollout }}
+        run: bundle exec fastlane android promote

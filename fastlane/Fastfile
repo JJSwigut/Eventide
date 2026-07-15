@@ -68,4 +68,34 @@ platform :android do
       validate_only: validate_only
     )
   end
+
+  desc "Promote an existing Google Play release between tracks"
+  lane :promote do |options|
+    version_code = (options[:version_code] || ENV["PLAY_VERSION_CODE"]).to_s.strip
+    source_track = (options[:source_track] || ENV["PLAY_SOURCE_TRACK"] || "internal").to_s.strip
+    destination_track = (options[:destination_track] || ENV["PLAY_DESTINATION_TRACK"] || "production").to_s.strip
+    rollout = (options[:rollout] || ENV["PLAY_ROLLOUT"] || "1.0").to_s.strip
+
+    UI.user_error!("Set PLAY_VERSION_CODE to the existing release version code.") unless version_code.match?(/\A[1-9]\d*\z/)
+    UI.user_error!("Source and destination tracks must differ.") if source_track == destination_track
+
+    rollout_fraction = Float(rollout, exception: false)
+    UI.user_error!("PLAY_ROLLOUT must be greater than 0 and at most 1.") unless rollout_fraction&.positive? && rollout_fraction <= 1
+
+    upload_to_play_store(
+      package_name: "com.jjswigut.eventide",
+      json_key_data: google_play_json_key_data,
+      track: source_track,
+      track_promote_to: destination_track,
+      version_code: version_code.to_i,
+      rollout: rollout_fraction,
+      track_promote_release_status: "completed",
+      skip_upload_apk: true,
+      skip_upload_aab: true,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
 end
