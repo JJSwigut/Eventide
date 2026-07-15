@@ -5,6 +5,13 @@ def env_or_default(name, default)
   value.empty? ? default : value
 end
 
+def google_play_json_key_data
+  json_key_data = ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"].to_s
+  json_key_data = ENV["SUPPLY_JSON_KEY_DATA"].to_s if json_key_data.empty?
+  UI.user_error!("Set GOOGLE_PLAY_SERVICE_ACCOUNT_JSON to the Google Play service-account JSON.") if json_key_data.empty?
+  json_key_data
+end
+
 platform :android do
   desc "Build a signed release Android App Bundle"
   lane :build_release do |options|
@@ -29,18 +36,64 @@ platform :android do
     aab = File.expand_path(aab, repo_root) unless aab.empty? || aab.start_with?("/")
     UI.user_error!("No release AAB found. Build :app:bundleRelease first or pass aab:/path/to/app.aab.") unless aab && File.exist?(aab)
 
-    json_key_data = ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"].to_s
-    json_key_data = ENV["SUPPLY_JSON_KEY_DATA"].to_s if json_key_data.empty?
-    UI.user_error!("Set GOOGLE_PLAY_SERVICE_ACCOUNT_JSON to the Google Play service-account JSON.") if json_key_data.empty?
-
     upload_to_play_store(
       package_name: "com.jjswigut.eventide",
       aab: aab,
-      json_key_data: json_key_data,
+      json_key_data: google_play_json_key_data,
       track: env_or_default("PLAY_TRACK", "internal"),
       release_status: env_or_default("PLAY_RELEASE_STATUS", "completed"),
-      skip_upload_metadata: false,
+      skip_upload_metadata: true,
       skip_upload_changelogs: false,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+
+  desc "Validate or publish the Google Play store listing"
+  lane :store_listing do |options|
+    repo_root = File.expand_path("..", __dir__)
+    validate_only = options.fetch(:validate_only, true).to_s.downcase != "false"
+
+    upload_to_play_store(
+      package_name: "com.jjswigut.eventide",
+      json_key_data: google_play_json_key_data,
+      metadata_path: File.join(repo_root, "fastlane/metadata/android"),
+      skip_upload_apk: true,
+      skip_upload_aab: true,
+      skip_upload_metadata: false,
+      skip_upload_changelogs: true,
+      skip_upload_images: false,
+      skip_upload_screenshots: false,
+      sync_image_upload: true,
+      validate_only: validate_only
+    )
+  end
+
+  desc "Promote an existing Google Play release between tracks"
+  lane :promote do |options|
+    version_code = (options[:version_code] || ENV["PLAY_VERSION_CODE"]).to_s.strip
+    source_track = (options[:source_track] || ENV["PLAY_SOURCE_TRACK"] || "internal").to_s.strip
+    destination_track = (options[:destination_track] || ENV["PLAY_DESTINATION_TRACK"] || "production").to_s.strip
+    rollout = (options[:rollout] || ENV["PLAY_ROLLOUT"] || "1.0").to_s.strip
+
+    UI.user_error!("Set PLAY_VERSION_CODE to the existing release version code.") unless version_code.match?(/\A[1-9]\d*\z/)
+    UI.user_error!("Source and destination tracks must differ.") if source_track == destination_track
+
+    rollout_fraction = Float(rollout, exception: false)
+    UI.user_error!("PLAY_ROLLOUT must be greater than 0 and at most 1.") unless rollout_fraction&.positive? && rollout_fraction <= 1
+
+    upload_to_play_store(
+      package_name: "com.jjswigut.eventide",
+      json_key_data: google_play_json_key_data,
+      track: source_track,
+      track_promote_to: destination_track,
+      version_code: version_code.to_i,
+      rollout: rollout,
+      track_promote_release_status: "completed",
+      skip_upload_apk: true,
+      skip_upload_aab: true,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
       skip_upload_images: true,
       skip_upload_screenshots: true
     )

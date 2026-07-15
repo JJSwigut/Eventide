@@ -22,7 +22,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                   // Allow overriding versionCode from gradle properties, default to 13 if not provided
                   versionCode =
                     (project.findProperty("overrideVersionCode")?.toString()?.toIntOrNull()) ?: 13
-                  versionName = "2.03"
+                  versionName = "2.04"
 
                     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
                     vectorDrawables {

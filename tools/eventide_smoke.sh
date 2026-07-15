@@ -195,6 +195,37 @@ wait_for_ui_text() {
   return 1
 }
 
+swipe_up() {
+  local size width height
+  size="$(adb -s "${ANDROID_SERIAL}" shell wm size 2>/dev/null | tr -d '\r' | awk -F': ' '/size:/ { value=$2 } END { print value }')"
+  width="${size%x*}"
+  height="${size#*x}"
+  if [[ -z "${width}" || -z "${height}" || "${width}" == "${height}" ]]; then
+    adb -s "${ANDROID_SERIAL}" shell input swipe 540 1536 540 768 400
+  else
+    adb -s "${ANDROID_SERIAL}" shell input swipe \
+      "$((width / 2))" "$((height * 4 / 5))" \
+      "$((width / 2))" "$((height * 2 / 5))" 400
+  fi
+}
+
+wait_for_ui_text_after_scroll() {
+  local expected="$1"
+  local label="$2"
+  for _ in {1..5}; do
+    if dump_ui && grep -Fq "${expected}" "${UI_DUMP_LOCAL}"; then
+      echo "Asserted UI state: ${label}"
+      return 0
+    fi
+    swipe_up
+    sleep 1
+  done
+
+  echo "Timed out waiting for UI text '${expected}' after scrolling (${label}). Last UI dump: ${UI_DUMP_LOCAL}" >&2
+  sed -n '1,80p' "${UI_DUMP_LOCAL}" >&2 || true
+  return 1
+}
+
 tap_screen_center() {
   local size width height
   size="$(adb -s "${ANDROID_SERIAL}" shell wm size 2>/dev/null | tr -d '\r' | awk -F': ' '/Physical size/ { print $2; exit }')"
@@ -310,10 +341,10 @@ if [[ "${SMOKE_FIXTURE}" == "1" ]]; then
   wait_for_ui_text "Marine conditions" "station detail marine panel rendered"
   wait_for_ui_text "Nearby buoy 44060" "deterministic NDBC buoy content rendered"
   wait_for_ui_text "12 mi" "deterministic NDBC buoy distance rendered"
-  wait_for_ui_text "Waves" "structured marine metric rows rendered"
   wait_for_ui_text "Tides" "station detail tide section rendered"
   wait_for_ui_text "1:14am" "deterministic tide content rendered"
   wait_for_ui_text "National Weather Service" "deterministic weather attribution rendered"
+  wait_for_ui_text_after_scroll "Waves" "structured marine metric rows rendered"
 else
   adb -s "${ANDROID_SERIAL}" shell am start -W -n "${MAIN_ACTIVITY}"
   wait_for_ui_text "Eventide" "normal app launched"
