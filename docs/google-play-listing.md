@@ -56,5 +56,11 @@ Publishing requires an explicit owner decision. Pushes to `main` and manual
 `release` runs continue to build and upload the AAB and version-specific
 changelog; listing operations skip the release job entirely.
 
+To promote an already-tested build without creating a new AAB, choose
+`promote-to-production`, supply its Google Play version code, and set the
+rollout fraction. The promotion lane validates the existing version code and
+promotes it from `internal` to `production` without uploading app binaries or
+store metadata.
+
 Google Play asset guidance:
 https://support.google.com/googleplay/android-developer/answer/9866151?hl=en
