@@ -9,6 +9,7 @@ import com.jjswigut.eventide.utils.GenericError
 import com.jjswigut.eventide.utils.UnknownError
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ResponseException
+import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -37,29 +38,59 @@ class NoaaServiceImpl(
     override suspend fun getTidesForStation(stationID: String): Either<TidesResponse, GenericError> {
         val startDate = LocalDate.now()
         val endDate = startDate.plusDays(7)
-
-        return runCatching {
-            client.getTides(
-                startDate = startDate.format(dateFormatter),
-                endDate = endDate.format(dateFormatter),
-                stationID = stationID,
-            ).body<TidesResponse>()
-        }.fold(
-            onSuccess = { response ->
-                Either.success(response)
+        val formattedStartDate = startDate.format(dateFormatter)
+        val formattedEndDate = endDate.format(dateFormatter)
+        val requests = listOf<suspend () -> TidesResponse>(
+            {
+                client.getTides(
+                    startDate = formattedStartDate,
+                    endDate = formattedEndDate,
+                    stationID = stationID,
+                ).body()
             },
-            onFailure = { throwable ->
-                val error = if (throwable is ResponseException) {
+            {
+                client.getTidesByRange(
+                    startDate = formattedStartDate,
+                    rangeHours = TIDE_RANGE_HOURS,
+                    stationID = stationID,
+                ).body()
+            },
+            {
+                client.getTides(
+                    startDate = formattedStartDate,
+                    endDate = formattedEndDate,
+                    stationID = stationID,
+                ).body()
+            },
+        )
+        var lastError: GenericError = UnknownError()
+
+        requests.forEachIndexed { index, request ->
+            val result = runCatching { request() }
+            val response = result.getOrNull()
+            if (response != null && response.error == null && response.predictions.isNotEmpty()) {
+                return Either.success(response)
+            }
+
+            result.exceptionOrNull()?.let { throwable ->
+                lastError = if (throwable is ResponseException) {
                     NetworkError(code = throwable.response.status.value)
                 } else {
                     UnknownError()
                 }
-                Either.failure(error)
-            },
-        )
+            }
+
+            retryDelaysMillis.getOrNull(index)?.let { delayMillis ->
+                delay(delayMillis)
+            }
+        }
+
+        return Either.failure(lastError)
     }
 
     companion object {
         private val dateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd", Locale.US)
+        private val retryDelaysMillis = listOf(350L, 900L)
+        private const val TIDE_RANGE_HOURS = 192
     }
 }
