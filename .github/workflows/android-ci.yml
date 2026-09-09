@@ -30,5 +30,8 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Verify database migrations
+        run: python3 tools/verify_database_migrations.py
+
       - name: Verify
         run: ./gradlew :app:compileDebugKotlin :app:spotlessCheck :app:testDebugUnitTest :app:assembleDebug
