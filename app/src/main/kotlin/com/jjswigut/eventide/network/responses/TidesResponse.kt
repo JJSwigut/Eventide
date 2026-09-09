@@ -12,8 +12,14 @@ import java.util.Locale
 
 @Serializable
 data class TidesResponse(
-    val predictions: List<TideDTO>,
+    val predictions: List<TideDTO> = emptyList(),
+    val error: ErrorDTO? = null,
 ) {
+    @Serializable
+    data class ErrorDTO(
+        val message: String = "",
+    )
+
     @Serializable
     data class TideDTO(
         val t: String,
