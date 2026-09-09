@@ -108,7 +108,9 @@ jobs:
           echo "Keystore and properties file created."
 
       - name: Run release checks
-        run: ./gradlew :app:spotlessCheck :app:testReleaseUnitTest :app:lintVitalRelease
+        run: |
+          python3 tools/verify_database_migrations.py
+          ./gradlew :app:spotlessCheck :app:testReleaseUnitTest :app:lintVitalRelease
 
       - name: Build Signed AAB
         id: build_aab

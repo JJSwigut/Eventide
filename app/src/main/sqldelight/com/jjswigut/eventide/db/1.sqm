@@ -1,0 +1,16 @@
+CREATE TABLE IF NOT EXISTS FavoriteStationEntity (
+   id TEXT PRIMARY KEY,
+   latitude REAL NOT NULL,
+   longitude REAL NOT NULL,
+   name TEXT NOT NULL,
+   state TEXT NOT NULL,
+   created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS TideAlertPreferenceEntity (
+   station_id TEXT PRIMARY KEY,
+   lead_time_minutes INTEGER NOT NULL,
+   tide_filter TEXT NOT NULL,
+   enabled INTEGER NOT NULL,
+   updated_at INTEGER NOT NULL
+);

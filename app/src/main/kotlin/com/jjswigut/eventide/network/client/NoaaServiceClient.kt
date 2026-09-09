@@ -49,12 +49,23 @@ class NoaaServiceClient(engine: HttpClientEngine) {
         parameter("station", stationID)
     }
 
+    suspend fun getTidesByRange(
+        startDate: String,
+        rangeHours: Int,
+        stationID: String,
+    ) = client.get {
+        url(base_url + tides_url)
+        parameter("begin_date", startDate)
+        parameter("range", rangeHours)
+        parameter("station", stationID)
+    }
+
     companion object {
         private const val base_url = "https://api.tidesandcurrents.noaa.gov/"
         private const val stations_url =
             "mdapi/prod/webapi/stations.json?type=tidepredictions&units=english"
         private const val tides_url =
-            "api/prod/datagetter?product=predictions&application=NOS.COOPS.TAC.WL&datum=MLLW&time_zone=lst_ldt&units=metric&interval=hilo&format=json"
+            "api/prod/datagetter?product=predictions&application=Eventide&datum=MLLW&time_zone=lst_ldt&units=metric&interval=hilo&format=json"
         private const val USER_AGENT = "Eventide/1.0 (jjswigut@gmail.com)"
         private const val CONNECT_TIMEOUT_MS = 10_000L
         private const val REQUEST_TIMEOUT_MS = 30_000L
