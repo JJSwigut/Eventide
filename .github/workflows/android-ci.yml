@@ -33,5 +33,8 @@ jobs:
       - name: Verify database migrations
         run: python3 tools/verify_database_migrations.py
 
+      - name: Verify Android release configuration
+        run: python3 tools/verify_android_release_config.py
+
       - name: Verify
         run: ./gradlew :app:compileDebugKotlin :app:spotlessCheck :app:testDebugUnitTest :app:assembleDebug
