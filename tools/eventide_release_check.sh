@@ -18,4 +18,9 @@ EVENTIDE_FORCE_EMULATOR="${EVENTIDE_FORCE_EMULATOR:-1}" \
 ./gradlew \
   :app:spotlessCheck \
   :app:testReleaseUnitTest \
-  :app:lintVitalRelease
+  :app:lintVitalRelease \
+  :app:bundleRelease
+
+"${SCRIPT_DIR}/verify_aab_target_sdk.sh" \
+  "${REPO_ROOT}/app/build/outputs/bundle/release/app-release.aab" \
+  36
