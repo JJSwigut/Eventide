@@ -1,6 +1,6 @@
 [versions]
 kotlin = "2.2.20"
-androidGradle = "8.7.3"
+androidGradle = "8.10.1"
 androidXCore = "1.15.0"
 lifecycle = "2.8.7"
 

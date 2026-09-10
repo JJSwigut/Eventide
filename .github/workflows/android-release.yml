@@ -110,6 +110,7 @@ jobs:
       - name: Run release checks
         run: |
           python3 tools/verify_database_migrations.py
+          python3 tools/verify_android_release_config.py
           ./gradlew :app:spotlessCheck :app:testReleaseUnitTest :app:lintVitalRelease
 
       - name: Build Signed AAB
@@ -121,6 +122,9 @@ jobs:
           echo "AAB_PATH=$AAB_FILE_PATH" >> $GITHUB_OUTPUT
           echo "AAB_NAME=$(basename "$AAB_FILE_PATH")" >> $GITHUB_OUTPUT
           echo "Signed AAB created at $AAB_FILE_PATH"
+
+      - name: Verify AAB target SDK
+        run: tools/verify_aab_target_sdk.sh "${{ steps.build_aab.outputs.AAB_PATH }}" 36
 
       - name: Create GitHub Release
         id: create_release

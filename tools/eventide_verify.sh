@@ -10,6 +10,7 @@ source "${SCRIPT_DIR}/eventide_env.sh"
 cd "${REPO_ROOT}"
 
 python3 tools/verify_database_migrations.py
+python3 tools/verify_android_release_config.py
 
 ./gradlew \
   :app:compileDebugKotlin \
